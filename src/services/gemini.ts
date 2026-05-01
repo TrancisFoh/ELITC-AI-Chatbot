@@ -39,21 +39,34 @@ Response Style:
 - Use emojis to feel approachable (👋, 📚, 🚀, 🎯).
 `;
 
-export async function chatWithAI(message: string, history: { role: 'user' | 'model', parts: { text: string }[] }[]) {
+export async function chatWithAI(
+  message: string, 
+  history: { role: 'user' | 'model', parts: { text: string }[] }[],
+  onChunk?: (text: string) => void
+) {
   try {
-    const response = await ai.models.generateContent({
+    const chat = ai.chats.create({
       model: "gemini-3-flash-preview",
-      contents: [
-        ...history.map(h => ({ role: h.role, parts: h.parts })),
-        { role: "user", parts: [{ text: message }] }
-      ],
+      history: history.map(h => ({ role: h.role, parts: h.parts })),
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         temperature: 0.7,
       },
     });
 
-    return response.text || "I'm sorry, I couldn't process that request.";
+    if (onChunk) {
+      const result = await chat.sendMessageStream({ message });
+      let fullText = "";
+      for await (const chunk of result) {
+        const chunkText = chunk.text || "";
+        fullText += chunkText;
+        onChunk(fullText);
+      }
+      return fullText;
+    } else {
+      const result = await chat.sendMessage({ message });
+      return result.text || "I'm sorry, I couldn't process that request.";
+    }
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "I'm having trouble connecting to my brain right now. Please try again in a moment.";

@@ -16,6 +16,8 @@ export default function App() {
     connectionStatus,
     isOpen,
     setIsOpen,
+    isExpanded,
+    setIsExpanded,
     suggestedReplies,
     scrollRef,
     showScrollButton,
@@ -26,56 +28,93 @@ export default function App() {
   } = useChatController();
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end font-sans selection:bg-elitc-gold/30">
+    <div className="font-sans selection:bg-elitc-gold/30">
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 0.95, y: 20, filter: 'blur(10px)' }}
-            className="mb-4 w-[400px] h-[640px] bg-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-zinc-200/50 flex flex-col overflow-hidden relative"
-          >
-            <ChatHeader 
-              onClose={() => setIsOpen(false)}
-              onMinimize={() => setIsOpen(false)}
-              connectionStatus={connectionStatus}
-            />
-
-            <MessageList 
-              messages={messages}
-              isLoading={isLoading}
-              scrollRef={scrollRef}
-              onMarkComplete={markMessageComplete}
-            />
-
-            <SuggestedReplies 
-              replies={suggestedReplies}
-              isVisible={!isLoading && messages[messages.length - 1]?.isComplete === true}
-              onSelect={handleSend}
-            />
-
-            <ScrollAssist 
-              isVisible={showScrollButton} 
-              onScrollToBottom={scrollToBottom} 
-            />
-
-            <ChatInput 
-              input={input}
-              isLoading={isLoading}
-              onInputChange={setInput}
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSend(input);
+          <div className={`fixed inset-0 z-40 transition-all duration-500 ${isExpanded ? 'bg-black/5' : 'pointer-events-none'}`}>
+            <motion.div
+              id="chat-window-container"
+              initial={{ 
+                opacity: 0, 
+                scale: 0, 
+                bottom: '52px',
+                right: '52px',
+                filter: 'blur(10px)' 
               }}
-            />
-          </motion.div>
+              animate={{ 
+                opacity: 1, 
+                scale: 1, 
+                filter: 'blur(0px)',
+                width: isExpanded ? 'calc(100vw - 48px)' : '410px',
+                height: isExpanded ? 'calc(100vh - 144px)' : '670px',
+                borderRadius: '32px',
+                bottom: '100px',
+                right: '24px'
+              }}
+              exit={{ 
+                opacity: 0, 
+                scale: 0, 
+                bottom: '52px',
+                right: '52px',
+                filter: 'blur(10px)' 
+              }}
+              transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+              style={{ 
+                position: 'fixed',
+                transformOrigin: 'bottom right'
+              }}
+              className={`bg-white shadow-[0_30px_90px_-10px_rgba(0,0,0,0.25),0_10px_30px_-5px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col pointer-events-auto backdrop-blur-sm shadow-2xl overflow-hidden`}
+            >
+              <div id="chat-header-wrapper">
+                <ChatHeader 
+                  onClose={() => setIsOpen(false)}
+                  onReset={resetChat}
+                  onToggleExpand={() => setIsExpanded(!isExpanded)}
+                  isExpanded={isExpanded}
+                  connectionStatus={connectionStatus}
+                />
+              </div>
+
+              <div id="message-list-wrapper" className="flex-1 overflow-hidden flex flex-col">
+                <MessageList 
+                  messages={messages}
+                  isLoading={isLoading}
+                  scrollRef={scrollRef}
+                  onMarkComplete={markMessageComplete}
+                />
+              </div>
+
+              <SuggestedReplies 
+                replies={suggestedReplies}
+                isVisible={!isLoading && messages[messages.length - 1]?.isComplete === true}
+                onSelect={handleSend}
+              />
+
+              <ScrollAssist 
+                isVisible={showScrollButton} 
+                onScrollToBottom={scrollToBottom} 
+              />
+
+              <ChatInput 
+                input={input}
+                isLoading={isLoading}
+                onInputChange={setInput}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSend(input);
+                }}
+              />
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      <FloatingToggle 
-        isOpen={isOpen}
-        onToggle={() => setIsOpen(!isOpen)}
-      />
+      <div className="fixed bottom-6 right-6 z-50">
+        <FloatingToggle 
+          isOpen={isOpen}
+          onToggle={() => setIsOpen(!isOpen)}
+        />
+      </div>
     </div>
   );
 }

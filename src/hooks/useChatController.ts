@@ -8,6 +8,7 @@ export function useChatController() {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'error'>('connected');
   const [isOpen, setIsOpen] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [suggestedReplies, setSuggestedReplies] = useState<string[]>([
     "For Myself",
     "For my Company",
@@ -149,7 +150,7 @@ export function useChatController() {
     }
 
     setIsLoading(true);
-    setConnectionStatus('connecting');
+    setConnectionStatus('connected');
     setSuggestedReplies([]);
 
     try {
@@ -158,21 +159,28 @@ export function useChatController() {
         parts: [{ text: m.content }]
       }));
 
-      const aiResponse = await chatWithAI(messageText, history);
-      setConnectionStatus('connected');
-      
+      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: assistantMessageId,
         role: 'assistant',
-        content: aiResponse,
+        content: '',
         timestamp: Date.now(),
         isComplete: false
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+
+      const aiResponse = await chatWithAI(messageText, history, (chunk) => {
+        setMessages(prev => prev.map(m => 
+          m.id === assistantMessageId ? { ...m, content: chunk } : m
+        ));
+      });
       
-      // Auto-attach courses if AI mentions a category
-      const mentionedCategory = Object.keys(CATEGORY_MAP).find(cat => 
+      // Auto-attach courses if AI mentions a category AND it's NOT a question OR it's an explicit recommendation
+      const isQuestion = aiResponse.trim().endsWith('?');
+      const hasRecommendationIntent = /recommend|suggest|here are|check out|look at|available|suitable|catalog|courses for you/i.test(aiResponse);
+      
+      const mentionedCategory = (hasRecommendationIntent || !isQuestion) && Object.keys(CATEGORY_MAP).find(cat => 
         aiResponse.toLowerCase().includes(cat.toLowerCase()) || 
         aiResponse.toLowerCase().includes(CATEGORY_MAP[cat].toLowerCase())
       );
@@ -181,7 +189,7 @@ export function useChatController() {
         const category = CATEGORY_MAP[mentionedCategory];
         const courses = ELITC_COURSES.filter(c => c.category === category);
         setMessages(prev => prev.map(m => 
-          m.id === assistantMessage.id ? { ...m, courses } : m
+          m.id === assistantMessageId ? { ...m, courses } : m
         ));
       }
                 
@@ -237,6 +245,8 @@ export function useChatController() {
     connectionStatus,
     isOpen,
     setIsOpen,
+    isExpanded,
+    setIsExpanded,
     suggestedReplies,
     scrollRef,
     showScrollButton,
