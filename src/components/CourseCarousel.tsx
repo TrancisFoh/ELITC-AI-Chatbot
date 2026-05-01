@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { motion } from 'motion/react';
-import { Clock, ChevronRight, ChevronLeft, ExternalLink } from 'lucide-react';
+import { Clock, ChevronRight, ChevronLeft, Tag } from 'lucide-react';
 import { Course } from '../types';
 
 interface CourseCarouselProps {
@@ -48,7 +48,7 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-medium">
                   <div className="w-5 h-5 flex items-center justify-center">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-elitc-gold/80"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                    <Tag className="w-3.5 h-3.5 text-elitc-gold/80" />
                   </div>
                   <span>Code: <span className="text-zinc-900 font-bold ml-1">{course.id}</span></span>
                 </div>

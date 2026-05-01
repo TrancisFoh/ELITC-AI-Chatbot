@@ -37,8 +37,8 @@ export default function App() {
               initial={{ 
                 opacity: 0, 
                 scale: 0, 
-                bottom: '52px',
-                right: '52px',
+                bottom: '100px',
+                right: '24px',
                 filter: 'blur(10px)' 
               }}
               animate={{ 
@@ -49,13 +49,13 @@ export default function App() {
                 height: isExpanded ? 'calc(100vh - 144px)' : '670px',
                 borderRadius: '32px',
                 bottom: '100px',
-                right: '24px'
+                right: '24px',
               }}
               exit={{ 
                 opacity: 0, 
                 scale: 0, 
-                bottom: '52px',
-                right: '52px',
+                bottom: '100px',
+                right: '24px',
                 filter: 'blur(10px)' 
               }}
               transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
@@ -63,7 +63,7 @@ export default function App() {
                 position: 'fixed',
                 transformOrigin: 'bottom right'
               }}
-              className={`bg-white shadow-[0_30px_90px_-10px_rgba(0,0,0,0.25),0_10px_30px_-5px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col pointer-events-auto backdrop-blur-sm shadow-2xl overflow-hidden`}
+              className="bg-white shadow-[0_30px_90px_-10px_rgba(0,0,0,0.25),0_10px_30px_-5px_rgba(0,0,0,0.1)] border border-white/50 flex flex-col pointer-events-auto backdrop-blur-sm shadow-2xl overflow-hidden"
             >
               <div id="chat-header-wrapper">
                 <ChatHeader 

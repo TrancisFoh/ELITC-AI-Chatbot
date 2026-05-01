@@ -160,23 +160,43 @@ export function useChatController() {
       }));
 
       const assistantMessageId = (Date.now() + 1).toString();
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: Date.now(),
-        isComplete: false
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      let hasAddedAssistant = false;
 
       const aiResponse = await chatWithAI(messageText, history, (chunk) => {
-        setMessages(prev => prev.map(m => 
-          m.id === assistantMessageId ? { ...m, content: chunk } : m
-        ));
+        if (!hasAddedAssistant && chunk.trim()) {
+          hasAddedAssistant = true;
+          setIsLoading(false); 
+          setMessages(prev => [...prev, {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: chunk,
+            timestamp: Date.now(),
+            isComplete: false
+          }]);
+        } else if (hasAddedAssistant) {
+          setMessages(prev => prev.map(m => 
+            m.id === assistantMessageId ? { ...m, content: chunk } : m
+          ));
+        }
+      });
+
+      // Finalize assistant message
+      setMessages(prev => {
+        const assistantExists = prev.some(m => m.id === assistantMessageId);
+        if (!assistantExists) {
+          return [...prev, {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: aiResponse,
+            timestamp: Date.now(),
+            isComplete: true
+          }];
+        }
+        return prev.map(m => 
+          m.id === assistantMessageId ? { ...m, content: aiResponse, isComplete: true } : m
+        );
       });
       
-      // Auto-attach courses if AI mentions a category AND it's NOT a question OR it's an explicit recommendation
       const isQuestion = aiResponse.trim().endsWith('?');
       const hasRecommendationIntent = /recommend|suggest|here are|check out|look at|available|suitable|catalog|courses for you/i.test(aiResponse);
       
@@ -197,8 +217,13 @@ export function useChatController() {
       const contextualLinks = getContextualReplies(aiResponse);
       const baseOptions = ["WSQ Courses", "AI & Digital", "Foreign Workers"];
       
+      // If the response sounds like an error, provide support options
+      const isErrorResponse = aiResponse.includes("breath") || aiResponse.includes("technical hiccup") || aiResponse.includes("lost my connection");
+      
       let newReplies: string[] = [];
-      if (aiResponse.toLowerCase().includes('consultation')) {
+      if (isErrorResponse) {
+        newReplies = ["Contact Us", "Office Location", "View Courses"];
+      } else if (aiResponse.toLowerCase().includes('consultation')) {
         newReplies = ["WSQ Courses", "Skills Improvement", ...baseOptions, ...contextualLinks];
       } else if (aiResponse.toLowerCase().includes('ai')) {
         newReplies = ["AI & Digital", "IPC Training", ...baseOptions, ...contextualLinks];

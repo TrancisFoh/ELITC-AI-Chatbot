@@ -49,7 +49,8 @@ export function MessageList({ messages, isLoading, scrollRef, onMarkComplete }: 
           ))}
         </AnimatePresence>
 
-        {isLoading && (
+        {/* Show typing indicator only when waiting for the first chunk of a new message */}
+        {isLoading && !messages.some(m => m.id === messages[messages.length - 1]?.id && m.role === 'assistant' && !m.isComplete) && (
           <div className="flex gap-3.5">
             <div className="w-8 h-8 rounded-[12px] bg-white border border-zinc-200 flex items-center justify-center shrink-0 shadow-sm">
               <Bot className="w-4 h-4 text-elitc-gold" />

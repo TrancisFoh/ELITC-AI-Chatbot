@@ -67,9 +67,27 @@ export async function chatWithAI(
       const result = await chat.sendMessage({ message });
       return result.text || "I'm sorry, I couldn't process that request.";
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return "I'm having trouble connecting to my brain right now. Please try again in a moment.";
+    
+    const errorMessage = error?.message?.toLowerCase() || "";
+    
+    // Quota reached
+    if (errorMessage.includes("429") || errorMessage.includes("quota")) {
+      return "I've been helping so many people today that I'm a bit out of breath! 😅 Please wait a moment before asking another question, or try again later.";
+    }
+    
+    // Safety filters
+    if (errorMessage.includes("safety") || errorMessage.includes("blocked")) {
+      return "I'm sorry, I can only discuss topics related to ELITC's training, courses, and professional development. Let's get back to your learning journey! 📚";
+    }
+
+    // Network issues
+    if (errorMessage.includes("fetch") || errorMessage.includes("network") || errorMessage.includes("connection")) {
+      return "It seems I've lost my connection to the training center! 📡 Please check your internet and try again so we can continue your consultation.";
+    }
+    
+    return "I'm having a small technical hiccup. 💫 Could you please try sending that again? I'm eager to help you find the right course!";
   }
 }
 
