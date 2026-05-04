@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Bot, User } from 'lucide-react';
+import { Bot, User, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message } from '../../types';
@@ -13,6 +13,7 @@ interface ChatBubbleProps {
 
 export function ChatBubble({ message, onComplete }: ChatBubbleProps) {
   const isUser = message.role === 'user';
+  const isError = message.isError;
 
   return (
     <motion.div
@@ -21,10 +22,13 @@ export function ChatBubble({ message, onComplete }: ChatBubbleProps) {
       className={`flex gap-3.5 ${isUser ? 'flex-row-reverse' : ''}`}
     >
       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
-        isUser ? 'bg-zinc-900 border border-zinc-800' : 'bg-white border border-zinc-200'
+        isUser ? 'bg-zinc-900 border border-zinc-800' : 
+        isError ? 'bg-rose-50 border border-rose-100' : 'bg-white border border-zinc-200'
       }`}>
         {isUser ? (
           <User className="w-4 h-4 text-zinc-400" />
+        ) : isError ? (
+          <AlertCircle className="w-4 h-4 text-rose-500" />
         ) : (
           <Bot className="w-4 h-4 text-elitc-gold" />
         )}
@@ -35,7 +39,9 @@ export function ChatBubble({ message, onComplete }: ChatBubbleProps) {
           className={`inline-block px-5 py-3.5 rounded-[24px] text-[14px] leading-relaxed shadow-sm transition-all duration-300 ${
           isUser 
             ? 'bg-zinc-900 text-zinc-100 rounded-tr-none border border-zinc-800' 
-            : 'bg-white border border-zinc-200/80 text-zinc-800 rounded-tl-none font-medium'
+            : isError
+              ? 'bg-rose-50 border border-rose-100 text-rose-900 rounded-tl-none font-medium'
+              : 'bg-white border border-zinc-200/80 text-zinc-800 rounded-tl-none font-medium'
         }`}>
           <div id={`message-content-${message.id}`} className="whitespace-pre-wrap prose prose-sm max-w-none prose-zinc prose-p:my-0 prose-a:text-elitc-gold prose-a:underline font-medium text-left">
             {!isUser && message.id !== 'welcome' && !message.isComplete ? (

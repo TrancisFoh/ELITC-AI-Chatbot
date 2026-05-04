@@ -17,4 +17,5 @@ export interface Message {
   timestamp: number;
   courses?: Course[];
   isComplete?: boolean;
+  isError?: boolean;
 }

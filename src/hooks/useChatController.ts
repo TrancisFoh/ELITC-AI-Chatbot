@@ -162,7 +162,7 @@ export function useChatController() {
       const assistantMessageId = (Date.now() + 1).toString();
       let hasAddedAssistant = false;
 
-      const aiResponse = await chatWithAI(messageText, history, (chunk) => {
+      const { content: aiResponse, isError } = await chatWithAI(messageText, history, (chunk) => {
         if (!hasAddedAssistant && chunk.trim()) {
           hasAddedAssistant = true;
           setIsLoading(false); 
@@ -189,11 +189,12 @@ export function useChatController() {
             role: 'assistant',
             content: aiResponse,
             timestamp: Date.now(),
-            isComplete: true
+            isComplete: true,
+            isError
           }];
         }
         return prev.map(m => 
-          m.id === assistantMessageId ? { ...m, content: aiResponse, isComplete: true } : m
+          m.id === assistantMessageId ? { ...m, content: aiResponse, isComplete: true, isError } : m
         );
       });
       
@@ -217,11 +218,8 @@ export function useChatController() {
       const contextualLinks = getContextualReplies(aiResponse);
       const baseOptions = ["WSQ Courses", "AI & Digital", "Foreign Workers"];
       
-      // If the response sounds like an error, provide support options
-      const isErrorResponse = aiResponse.includes("breath") || aiResponse.includes("technical hiccup") || aiResponse.includes("lost my connection");
-      
       let newReplies: string[] = [];
-      if (isErrorResponse) {
+      if (isError) {
         newReplies = ["Contact Us", "Office Location", "View Courses"];
       } else if (aiResponse.toLowerCase().includes('consultation')) {
         newReplies = ["WSQ Courses", "Skills Improvement", ...baseOptions, ...contextualLinks];
