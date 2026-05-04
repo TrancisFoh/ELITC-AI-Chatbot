@@ -8,6 +8,10 @@ interface ChatInputProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
+/**
+ * Component for the chat input field and send button.
+ * Disables input during loading states and handles form submission.
+ */
 export function ChatInput({ input, isLoading, onInputChange, onSubmit }: ChatInputProps) {
   return (
     <form 
@@ -15,6 +19,7 @@ export function ChatInput({ input, isLoading, onInputChange, onSubmit }: ChatInp
       className="p-6 bg-white border-t border-zinc-100 shrink-0"
     >
       <div className="relative flex items-center">
+        {/* Main Text Input */}
         <input
           type="text"
           value={input}
@@ -23,6 +28,7 @@ export function ChatInput({ input, isLoading, onInputChange, onSubmit }: ChatInp
           disabled={isLoading}
           className="w-full bg-zinc-50 border border-zinc-200/80 rounded-full pl-6 pr-14 py-4 text-[14px] focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all disabled:opacity-50 placeholder:text-zinc-400"
         />
+        {/* Send Button: Changes to a spinner when the bot is thinking/responding */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

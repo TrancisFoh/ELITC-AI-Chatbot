@@ -1,3 +1,4 @@
+/* --- FONTS & TAILWIND --- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
@@ -5,11 +6,13 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
+  /* ELITC Corporate Branding Colors */
   --color-elitc-gold: #dbac35;
   --color-elitc-gold-dark: #b88e2a;
   --color-elitc-dark: #1a1a1a;
 }
 
+/* --- UTILITIES --- */
 @utility no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -18,12 +21,14 @@
   }
 }
 
+/* --- GLOBAL STYLES --- */
 @layer base {
   body {
     background-color: transparent;
     color: var(--color-elitc-dark);
   }
 
+  /* Custom Scrollbar Styling (Webkit) */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -40,6 +45,7 @@
   }
 }
 
+/* --- MARKDOWN CONTENT STYLES --- */
 .prose a {
   color: #dbac35;
   text-decoration: underline;

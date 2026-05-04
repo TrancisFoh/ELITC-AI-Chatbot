@@ -39,12 +39,17 @@ Response Style:
 - Use emojis to feel approachable (👋, 📚, 🚀, 🎯).
 `;
 
+/**
+ * Logic to communicate with the Gemini AI model.
+ * Handles conversation history, system instructions, and streaming responses.
+ */
 export async function chatWithAI(
   message: string, 
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   onChunk?: (text: string) => void
 ): Promise<{ content: string; isError: boolean }> {
   try {
+    // Initialize a new chat session with the full conversation context
     const chat = ai.chats.create({
       model: "gemini-3-flash-preview",
       history: history.map(h => ({ role: h.role, parts: h.parts })),
@@ -54,6 +59,7 @@ export async function chatWithAI(
       },
     });
 
+    // Check if we should stream the response (real-time typing effect) or wait for full reply
     if (onChunk) {
       const result = await chat.sendMessageStream({ message });
       let fullText = "";
@@ -70,6 +76,7 @@ export async function chatWithAI(
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     
+    // Provide user-friendly errors based on common failure modes (Quota, Safety Filters, etc.)
     const errorMessage = error?.message?.toLowerCase() || "";
     let content = "I'm having a small technical hiccup. 💫 Could you please try sending that again? I'm eager to help you find the right course!";
 
@@ -84,5 +91,3 @@ export async function chatWithAI(
     return { content, isError: true };
   }
 }
-
-export { ELITC_COURSES, CATEGORY_MAP };

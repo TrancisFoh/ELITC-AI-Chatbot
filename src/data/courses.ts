@@ -1,5 +1,10 @@
 import { Course } from "../types";
 
+/**
+ * ELITC Course Catalog Data
+ * This is the source of truth for all training programs handled by the assistant.
+ * Categories include: WSQ, AI & Digital, IPC, Foreign Workers, and Skills Improvement.
+ */
 export const ELITC_COURSES: Course[] = [
   // WSQ Courses
   {

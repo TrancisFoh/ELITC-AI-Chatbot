@@ -6,10 +6,16 @@ interface FloatingToggleProps {
   onToggle: () => void;
 }
 
+/**
+ * Component for the floating chat toggle button (launcher).
+ * Stays in the bottom-right corner and toggles the chat window visibility.
+ */
 export function FloatingToggle({ isOpen, onToggle }: FloatingToggleProps) {
   return (
     <div className="relative group">
+      {/* Decorative glow effect behind the button */}
       <div className="absolute inset-0 bg-elitc-gold rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
+      
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -20,6 +26,7 @@ export function FloatingToggle({ isOpen, onToggle }: FloatingToggleProps) {
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
+            /* Icon when chat is open: usually a close arrow or X */
             <motion.div
               key="close"
               initial={{ rotate: -90, opacity: 0, scale: 0.8 }}
@@ -29,6 +36,7 @@ export function FloatingToggle({ isOpen, onToggle }: FloatingToggleProps) {
               <ChevronDown className="w-7 h-7 text-white" />
             </motion.div>
           ) : (
+            /* Icon when chat is closed: message icon with an active indicator badge */
             <motion.div
               key="open"
               initial={{ rotate: 90, opacity: 0, scale: 0.8 }}

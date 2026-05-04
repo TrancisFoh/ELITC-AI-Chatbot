@@ -7,9 +7,14 @@ interface CourseCarouselProps {
   courses: Course[];
 }
 
+/**
+ * Component to display a horizontal list of courses.
+ * Uses snap-scrolling and custom navigation arrows for a "mobile-app card" feel.
+ */
 export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Helper to scroll the carousel container via left/right buttons
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
       const { scrollLeft, clientWidth } = scrollRef.current;
@@ -20,6 +25,7 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
 
   return (
     <div id="course-carousel-root" className="relative group/carousel">
+      {/* Horizontal Scrollable Container */}
       <motion.div 
         ref={scrollRef}
         id="course-slides-container"
@@ -28,12 +34,13 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
         className="flex gap-3 overflow-x-auto pb-4 -mx-2 px-2 snap-x snap-mandatory scroll-smooth no-scrollbar"
       >
         {courses.map((course, idx) => (
+          /* Individual Course Card */
           <div 
             key={course.id}
             id={`course-card-${idx}`}
             className="min-w-[200px] max-w-[200px] bg-white border border-zinc-100 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col overflow-hidden snap-center group"
           >
-            {/* Header with Title */}
+            {/* Header: Displays course title with ELITC brand color background */}
             <div 
               className="bg-elitc-gold p-5 flex items-center justify-center min-h-[110px] text-center"
               id={`card-header-${idx}`}
@@ -43,7 +50,7 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
               </h3>
             </div>
 
-            {/* Content Section */}
+            {/* Content: Displays metadata like Course Code and Duration */}
             <div className="p-4 flex flex-col gap-3" id={`card-content-${idx}`}>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[11px] text-zinc-500 font-medium">
@@ -61,10 +68,9 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
                 </div>
               </div>
 
-              {/* Decorative Divider */}
               <div className="border-t border-dashed border-zinc-200 my-0.5" />
 
-              {/* Action Link */}
+              {/* External link to the ELITC website for full course details */}
               <a 
                 href={course.url}
                 target="_blank"
@@ -80,6 +86,7 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
         ))}
       </motion.div>
       
+      {/* Navigation Arrows: Only visible on hover if there's more than one course */}
       {courses.length > 1 && (
         <>
           <button 

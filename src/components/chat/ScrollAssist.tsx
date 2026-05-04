@@ -6,6 +6,10 @@ interface ScrollAssistProps {
   onScrollToBottom: () => void;
 }
 
+/**
+ * Component for the "Scroll to Bottom" helper button.
+ * Appears when the user has scrolled up away from the most recent messages.
+ */
 export function ScrollAssist({ isVisible, onScrollToBottom }: ScrollAssistProps) {
   return (
     <AnimatePresence>
@@ -17,6 +21,7 @@ export function ScrollAssist({ isVisible, onScrollToBottom }: ScrollAssistProps)
           onClick={onScrollToBottom}
           className="absolute bottom-24 right-6 p-2 bg-white border border-zinc-200 rounded-full shadow-lg text-zinc-600 hover:text-elitc-gold transition-colors z-20"
         >
+          {/* Using ChevronRight rotated 90deg to represent a "down" arrow */}
           <ChevronRight className="w-4 h-4 rotate-90" />
         </motion.button>
       )}

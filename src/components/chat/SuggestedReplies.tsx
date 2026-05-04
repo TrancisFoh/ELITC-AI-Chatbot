@@ -7,10 +7,15 @@ interface SuggestedRepliesProps {
   onSelect: (reply: string) => void;
 }
 
+/**
+ * Component for rendering "Quick Reply" suggestion pills.
+ * These buttons allow users to quickly respond to the bot with one tap.
+ */
 export function SuggestedReplies({ replies, isVisible, onSelect }: SuggestedRepliesProps) {
   return (
     <div className="bg-white px-4 pt-4 shrink-0 overflow-hidden">
       <AnimatePresence>
+        {/* Only show replies if they exist and the bot is not currently busy */}
         {isVisible && replies.length > 0 && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}

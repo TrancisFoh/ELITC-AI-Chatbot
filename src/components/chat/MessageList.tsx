@@ -8,23 +8,27 @@ interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
   scrollRef: RefObject<HTMLDivElement>;
-  onMarkComplete: (id: string) => void;
 }
 
-export function MessageList({ messages, isLoading, scrollRef, onMarkComplete }: MessageListProps) {
+/**
+ * Component that renders the list of chat messages.
+ * Includes auto-scroll logic using ResizeObserver to ensure the latest messages are visible.
+ */
+export function MessageList({ messages, isLoading, scrollRef }: MessageListProps) {
   useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
     // Auto-scroll logic when content changes height (e.g. during typing)
     const observer = new ResizeObserver(() => {
+      // Only scroll if the user is already near the bottom (prevents jumping if user scrolled up to read)
       const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
       if (isAtBottom) {
         container.scrollTo({ top: container.scrollHeight, behavior: 'auto' });
       }
     });
 
-    // Observe the internal wrapper for size changes
+    // Observe the internal wrapper for size changes (messages being added or streamed)
     const wrapper = container.querySelector('.messages-content-wrapper');
     if (wrapper) {
       observer.observe(wrapper);
@@ -44,12 +48,11 @@ export function MessageList({ messages, isLoading, scrollRef, onMarkComplete }: 
             <ChatBubble 
               key={message.id} 
               message={message} 
-              onComplete={onMarkComplete} 
             />
           ))}
         </AnimatePresence>
 
-        {/* Show typing indicator only when waiting for the first chunk of a new message */}
+        {/* Typing indicator: shown when the bot is processing a response */}
         {isLoading && !messages.some(m => m.id === messages[messages.length - 1]?.id && m.role === 'assistant' && !m.isComplete) && (
           <div className="flex gap-3.5">
             <div className="w-8 h-8 rounded-[12px] bg-white border border-zinc-200 flex items-center justify-center shrink-0 shadow-sm">

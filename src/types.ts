@@ -1,3 +1,6 @@
+/**
+ * Represents a training course offered by ELITC.
+ */
 export interface Course {
   id: string;
   title: string;
@@ -10,12 +13,15 @@ export interface Course {
   category: string;
 }
 
+/**
+ * Represents a single message in the chat history.
+ */
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  courses?: Course[];
-  isComplete?: boolean;
-  isError?: boolean;
+  courses?: Course[]; // Optional array of courses to display as a carousel
+  isComplete?: boolean; // Flag to indicate if AI streaming response has finished
+  isError?: boolean; // Flag to indicate if the message represents an error
 }
