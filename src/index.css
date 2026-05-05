@@ -23,8 +23,8 @@
 
 /* --- GLOBAL STYLES --- */
 @layer base {
-  body {
-    background-color: transparent;
+  html, body {
+    background-color: transparent !important;
     color: var(--color-elitc-dark);
   }
 

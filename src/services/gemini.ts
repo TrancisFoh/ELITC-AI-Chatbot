@@ -46,6 +46,7 @@ Response Style:
 export async function chatWithAI(
   message: string, 
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
+  systemInstruction?: string,
   onChunk?: (text: string) => void
 ): Promise<{ content: string; isError: boolean }> {
   try {
@@ -54,7 +55,7 @@ export async function chatWithAI(
       model: "gemini-3-flash-preview",
       history: history.map(h => ({ role: h.role, parts: h.parts })),
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: systemInstruction || SYSTEM_INSTRUCTION,
         temperature: 0.7,
       },
     });

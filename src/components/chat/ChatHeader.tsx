@@ -37,7 +37,7 @@ export function ChatHeader({ onClose, onReset, onToggleExpand, isExpanded, conne
         <div className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center border border-white/50">
           <Bot className="w-6 h-6 text-elitc-gold" />
         </div>
-        <div>
+        <div className="flex flex-col">
           <h1 className="font-bold text-base tracking-tight leading-none mb-1.5 text-zinc-900">
             ELITC Assistant
           </h1>
@@ -47,7 +47,9 @@ export function ChatHeader({ onClose, onReset, onToggleExpand, isExpanded, conne
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${ringColors[connectionStatus]} opacity-75`}></span>
               <span className={`relative inline-flex rounded-full h-2 w-2 ${statusColors[connectionStatus]}`}></span>
             </div>
-            <span className="text-[10px] text-zinc-800 font-bold uppercase tracking-[2px]">{connectionStatus}</span>
+            <span className="text-[10px] text-zinc-800 font-bold uppercase tracking-[2px]">
+              {connectionStatus === 'connected' ? 'Online' : connectionStatus === 'connecting' ? 'Processing' : 'Error'}
+            </span>
           </div>
         </div>
       </div>

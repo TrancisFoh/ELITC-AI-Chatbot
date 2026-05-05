@@ -65,6 +65,28 @@ export function ChatBubble({ message }: ChatBubbleProps) {
              <CourseCarousel courses={message.courses} />
           </div>
         )}
+
+        {/* If location info is attached, show a Google Map pin/iframe */}
+        {message.isComplete && message.location && (
+          <div className="pt-1 rounded-2xl overflow-hidden border border-zinc-200 bg-white shadow-sm">
+            <iframe
+              title="ELITC Location"
+              width="100%"
+              height="200"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={message.location.mapUrl}
+            ></iframe>
+            <div className="p-3 bg-zinc-50 border-t border-zinc-100">
+              <p className="text-[11px] text-zinc-500 font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-elitc-gold animate-pulse" />
+                {message.location.address}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );
