@@ -52,7 +52,8 @@ export async function chatWithAI(
   try {
     // Initialize a new chat session with the full conversation context
     const chat = ai.chats.create({
-      model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
+
       history: history.map(h => ({ role: h.role, parts: h.parts })),
       config: {
         systemInstruction: systemInstruction || SYSTEM_INSTRUCTION,
