@@ -60,9 +60,18 @@ export async function chatWithAI(
       },
     });
 
+    // Add a race against a timeout to handle connection hangs
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Request timed out")), 20000)
+    );
+
     // Check if we should stream the response (real-time typing effect) or wait for full reply
     if (onChunk) {
-      const result = await chat.sendMessageStream({ message });
+      const result = await Promise.race([
+        chat.sendMessageStream({ message }),
+        timeoutPromise
+      ]) as any;
+
       let fullText = "";
       for await (const chunk of result) {
         const chunkText = chunk.text || "";
@@ -71,7 +80,10 @@ export async function chatWithAI(
       }
       return { content: fullText, isError: false };
     } else {
-      const result = await chat.sendMessage({ message });
+      const result = await Promise.race([
+        chat.sendMessage({ message }),
+        timeoutPromise
+      ]) as any;
       return { content: result.text || "I'm sorry, I couldn't process that request.", isError: false };
     }
   } catch (error: any) {
@@ -81,7 +93,9 @@ export async function chatWithAI(
     const errorMessage = error?.message?.toLowerCase() || "";
     let content = "I'm having a small technical hiccup. 💫 Could you please try sending that again? I'm eager to help you find the right course!";
 
-    if (errorMessage.includes("429") || errorMessage.includes("quota")) {
+    if (errorMessage.includes("timed out")) {
+      content = "It's taking a bit longer than usual to connect to my brain! 🧠 Please try again in a moment – I'm still here to help.";
+    } else if (errorMessage.includes("429") || errorMessage.includes("quota")) {
       content = "I've been helping so many people today that I'm a bit out of breath! 😅 Please wait a moment before asking another question, or try again later.";
     } else if (errorMessage.includes("safety") || errorMessage.includes("blocked")) {
       content = "I'm sorry, I can only discuss topics related to ELITC's training, courses, and professional development. Let's get back to your learning journey! 📚";

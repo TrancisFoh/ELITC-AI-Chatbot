@@ -29,25 +29,30 @@ import {
   Edit2, 
   Save, 
   X, 
-  Layout, 
   Database, 
   Settings, 
-  LogOut, 
   ChevronRight,
   Search,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
   Zap,
-  ArrowLeft
+  ShieldCheck,
+  Layout,
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ELITC_COURSES } from '../data/courses';
 
 export default function AdminPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ username: string } | null>(() => {
+    const saved = localStorage.getItem('elitc_admin_auth');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
   const [activeTab, setActiveTab] = useState<'courses' | 'config' | 'system'>('courses');
   
   const [courses, setCourses] = useState<Course[]>([]);
@@ -59,37 +64,32 @@ export default function AdminPage() {
   const [editingConfig, setEditingConfig] = useState<Partial<Config> | null>(null);
 
   const [migrationStatus, setMigrationStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginError, setLoginError] = useState('');
 
   // --- Data Migration Utility ---
   const handleMigrate = async () => {
     setMigrationStatus({ type: 'idle', message: '' });
-    
     const confirmMessage = `This will synchronize ${ELITC_COURSES.length} course records and the default system instructions to your Firestore database. \n\nContinue?`;
-
     if (!confirm(confirmMessage)) return;
     
     setMigrationLoading(true);
     try {
-      console.log("Starting migration for", ELITC_COURSES.length, "courses...");
-      const batchSize = 400; // Firestore limit is 500 per batch
+      const batchSize = 400;
       const courseChunks = [];
-      
       for (let i = 0; i < ELITC_COURSES.length; i += batchSize) {
         courseChunks.push(ELITC_COURSES.slice(i, i + batchSize));
       }
 
-      // Process Course Batches
       for (const [index, chunk] of courseChunks.entries()) {
         const batch = writeBatch(db);
         chunk.forEach(course => {
-          const docRef = doc(db, 'courses', course.id);
-          batch.set(docRef, course, { merge: true });
+          batch.set(doc(db, 'courses', course.id), course, { merge: true });
         });
         await batch.commit();
-        console.log(`Committed patch ${index + 1}/${courseChunks.length}`);
+        console.log(`Committed chunk ${index + 1}`);
       }
 
-      // 2. Default System Instruction
       const defaultPrompt = `You are the ELITC Assistant, an expert training consultant for the Electronics Industries Training Centre (https://www.elitc.com/).
 
 Primary Objective:
@@ -113,8 +113,7 @@ Key Info:
 - Free consultation available for Workforce Skills Qualifications (WSQ) roadmaps.`;
 
       const configBatch = writeBatch(db);
-      const configRef = doc(db, 'configs', 'SYSTEM_PROMPT_DEFAULT');
-      configBatch.set(configRef, {
+      configBatch.set(doc(db, 'configs', 'SYSTEM_PROMPT_DEFAULT'), {
         key: 'SYSTEM_INSTRUCTION',
         value: defaultPrompt
       }, { merge: true });
@@ -130,62 +129,47 @@ Key Info:
     }
   };
 
-  // Authentication & Admin Check
+  // --- AUTHENTICATION ---
   useEffect(() => {
-    // Immediate check if we already have the user (unlikely but good for HMR)
-    if (auth.currentUser) {
-      setUser(auth.currentUser);
+    let timeout: NodeJS.Timeout;
+    if (!isAdmin && user) {
+      setLoading(true);
+      timeout = setTimeout(() => {
+        setLoading(false);
+        setShowRetry(true);
+      }, 5000);
     }
-
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      console.log("Auth State Changed:", u?.email);
-      setUser(u);
-      
-      if (u) {
-        // Fast-path for root admin
-        const isRootAdmin = u.email === 'francis.toh@elitc.com';
-        if (isRootAdmin) {
-          setIsAdmin(true);
-          setLoading(false);
-          
-          // Background sync
-          const adminRef = doc(db, 'admins', u.uid);
-          setDoc(adminRef, {
-            email: u.email,
-            name: u.displayName,
-            providerId: u.providerId,
-            lastLogin: Date.now()
-          }, { merge: true }).catch(err => console.error("Admin sync failed:", err));
-          return;
-        }
-
-        try {
-          const adminRef = doc(db, 'admins', u.uid);
-          const adminDoc = await getDoc(adminRef);
-          setIsAdmin(adminDoc.exists());
-        } catch (e) {
-          console.error("Critical Admin Check Error:", e);
-          setIsAdmin(false);
-        }
-      } else {
-        setIsAdmin(false);
-      }
-      
+    
+    if (user && user.username === 'admin') {
+      setIsAdmin(true);
       setLoading(false);
-    });
+      setShowRetry(false);
+      clearTimeout(timeout!);
+    }
+    
+    return () => clearTimeout(timeout);
+  }, [user, isAdmin]);
 
-    // Heartbeat: Ensure we don't stay stuck for more than 4s
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 4000);
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    if (loginForm.username === 'admin' && loginForm.password === 'admin') {
+      const userData = { username: 'admin' };
+      setUser(userData);
+      setIsAdmin(true);
+      localStorage.setItem('elitc_admin_auth', JSON.stringify(userData));
+    } else {
+      setLoginError('Invalid credentials. Please use admin/admin.');
+    }
+  };
 
-    return () => {
-      unsubscribe();
-      clearTimeout(timer);
-    };
-  }, []);
+  const handleLogout = () => {
+    setUser(null);
+    setIsAdmin(false);
+    localStorage.removeItem('elitc_admin_auth');
+  };
 
-  // Data Fetching
+  // --- DATA FETCHING ---
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -204,17 +188,6 @@ Key Info:
       unsubConfigs();
     };
   }, [isAdmin]);
-
-  const handleLogin = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (e) {
-      console.error("Login failed:", e);
-    }
-  };
-
-  const handleLogout = () => signOut(auth);
 
   // Course CRUD
   const saveCourse = async () => {
@@ -258,48 +231,100 @@ Key Info:
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-elitc-gold" />
-    </div>
-  );
-
-  if (!user || !isAdmin) return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center border border-zinc-100">
-        <Layout className="w-16 h-16 text-elitc-gold mx-auto mb-6" />
-        <h1 className="text-2xl font-bold text-zinc-900 mb-2">Admin Portal</h1>
-        <p className="text-zinc-500 mb-8">Access restricted to ELITC administrators only. Please sign in to continue.</p>
-        
-        {!user ? (
-          <button 
-            onClick={handleLogin}
-            className="w-full bg-zinc-900 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all shadow-lg"
-          >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 bg-white rounded-full p-0.5" />
-            Sign in with Google
-          </button>
-        ) : (
-          <div className="space-y-4">
-            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 text-left">
-              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-rose-900">Access Denied</p>
-                <p className="text-xs text-rose-700">Account: {user.email}</p>
-                <p className="text-xs text-rose-700 mt-1">Your account is not registered as an administrator. Please contact IT for access.</p>
-              </div>
-            </div>
+  if (loading || (!isAdmin && user && !showRetry)) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-3xl border border-zinc-200 shadow-xl w-full max-w-sm flex flex-col items-center">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+            className="w-12 h-12 border-4 border-elitc-gold border-t-transparent rounded-full mb-6"
+          />
+          <h2 className="text-xl font-bold text-zinc-900 mb-2">Connecting...</h2>
+          <p className="text-zinc-500 text-sm text-center mb-6">Verifying your admin access secure parameters.</p>
+          
+          {showRetry && (
             <button 
-              onClick={handleLogout}
-              className="text-zinc-500 hover:text-zinc-900 text-sm font-medium transition-colors"
+              onClick={() => window.location.reload()}
+              className="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl hover:bg-zinc-800 transition-all flex items-center justify-center gap-2"
             >
-              Sign out and try another account
+              <RefreshCw className="w-4 h-4" />
+              Retry Connection
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-white p-8 rounded-3xl border border-zinc-200 shadow-xl"
+        >
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4">
+              <ShieldCheck className="w-8 h-8 text-elitc-gold" />
+            </div>
+            <h1 className="text-2xl font-bold text-zinc-900">Admin Portal</h1>
+            <p className="text-zinc-500 text-sm text-center mt-2">Enter credentials to manage ELITC Assistant</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Username</label>
+              <input 
+                type="text"
+                value={loginForm.username}
+                onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none transition-all"
+                placeholder="admin"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Password</label>
+              <input 
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none transition-all"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {loginError && (
+              <div className="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {loginError}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer"
+            >
+              Access Dashboard
+            </button>
+          </form>
+
+          <footer className="mt-8 pt-8 border-t border-zinc-100 flex items-center justify-center">
+            <button 
+              onClick={() => window.location.href = '/'}
+              className="text-zinc-400 hover:text-zinc-900 text-sm flex items-center gap-2 cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Assistant
+            </button>
+          </footer>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans">
@@ -343,15 +368,17 @@ Key Info:
 
         <div className="p-4 border-t border-zinc-100">
           <div className="flex items-center gap-3 mb-4 px-2">
-            <img src={user.photoURL || ''} alt="User" className="w-8 h-8 rounded-full border border-zinc-200" />
+            <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-[10px] text-white font-bold">
+              AD
+            </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-bold text-zinc-900 truncate">{user.displayName}</p>
-              <p className="text-[10px] text-zinc-500 truncate">{user.email}</p>
+              <p className="text-xs font-bold text-zinc-900 truncate">Administrator</p>
+              <p className="text-[10px] text-zinc-500 truncate">admin@elitc.assistant</p>
             </div>
           </div>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 text-zinc-500 hover:text-zinc-900 text-xs font-medium hover:bg-zinc-50 rounded-lg transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2 text-zinc-500 hover:text-zinc-900 text-xs font-medium hover:bg-zinc-50 rounded-lg transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Sign Out

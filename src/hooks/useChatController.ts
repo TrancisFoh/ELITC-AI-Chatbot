@@ -276,11 +276,19 @@ export function useChatController() {
       return;
     }
 
-    // --- AI GENERATED RESPONSE FALLBACK ---
+  // --- AI GENERATED RESPONSE FALLBACK ---
     // If the input doesn't match any pre-defined rules, we query the AI model
     setIsLoading(true);
     setConnectionStatus('connecting');
     setSuggestedReplies([]);
+
+    // Add a manual timeout in case the service hangs
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setConnectionStatus('error');
+        setIsLoading(false);
+      }
+    }, 25000);
 
     try {
       // Map message history to format required by Gemini Chat API
@@ -294,6 +302,9 @@ export function useChatController() {
 
       // Streamed chat with the model
       const { content: aiResponse, isError } = await chatWithAI(messageText, history, systemInstruction, (chunk) => {
+        // Clear timeout as soon as we get the first chunk
+        clearTimeout(timeoutId);
+        
         // Handle incoming data chunks for real-time appearance
         if (!hasAddedAssistant && chunk.trim()) {
           hasAddedAssistant = true;
@@ -312,6 +323,8 @@ export function useChatController() {
           ));
         }
       });
+
+      clearTimeout(timeoutId);
 
       // Finalize the assistant message state once the stream ends
       setMessages(prev => {
