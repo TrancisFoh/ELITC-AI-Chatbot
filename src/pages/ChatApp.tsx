@@ -44,8 +44,11 @@ export default function ChatApp() {
                 opacity: 1, 
                 scale: 1, 
                 filter: 'blur(0px)',
-                width: isExpanded ? 'calc(100vw - 48px)' : '410px',
-                height: isExpanded ? 'calc(100vh - 144px)' : '670px',
+                // Uses min() to ensure it takes  up 100vw minus 48px (for padding) on mobile, 
+                // but never exceeds 410px wide on laptop.
+                width: isExpanded ? 'calc(100vw - 48px)' : 'min(410px, calc(100vw - 48px))',
+                // Uses dynamic viewport height (dvh) so it fits beautifully above the mobile keyboard.
+                height: isExpanded ? 'calc(100dvh - 144px)' : 'min(670px, calc(100dvh - 140px))',
               }}
               exit={{ 
                 opacity: 0, 

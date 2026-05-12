@@ -39,15 +39,19 @@ service cloud.firestore {
 
     // --- Rules ---
 
-    match /courses/{courseId} {
+  match /courses/{courseId} {
       allow read: if true;
-      // Protected by schema validation. In a real app, this would be isAdmin()
-      allow write: if isValidCourse(incoming());
+      // Apply schema validation only when data is being created or modified
+      allow create, update: if isValidCourse(incoming());
+      // Allow deletions to pass through without schema validation
+      allow delete: if true; 
     }
 
     match /configs/{configId} {
       allow read: if true;
-      allow write: if isValidConfig(incoming());
+      // Apply the same fix here to prevent the same issue with configs
+      allow create, update: if isValidConfig(incoming());
+      allow delete: if true;
     }
 
     match /admins/{userId} {
