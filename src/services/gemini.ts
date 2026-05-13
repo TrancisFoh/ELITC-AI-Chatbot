@@ -1,9 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
-import { ELITC_COURSES, CATEGORY_MAP } from "../data/courses";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-const SYSTEM_INSTRUCTION = `
+export const DEFAULT_SYSTEM_INSTRUCTION = `
 You are the ELITC Assistant, an expert training consultant for the Electronics Industries Training Centre (https://www.elitc.com/).
 
 Primary Objective:
@@ -56,7 +55,7 @@ export async function chatWithAI(
 
       history: history.map(h => ({ role: h.role, parts: h.parts })),
       config: {
-        systemInstruction: systemInstruction || SYSTEM_INSTRUCTION,
+        systemInstruction: systemInstruction || DEFAULT_SYSTEM_INSTRUCTION,
         temperature: 0.7,
       },
     });
