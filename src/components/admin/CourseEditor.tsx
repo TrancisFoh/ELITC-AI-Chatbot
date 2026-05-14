@@ -46,8 +46,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
                     type="text"
                     placeholder="e.g. WSQ-001"
                     value={course.id || ''}
+                    disabled={!!course.id && Object.keys(course).length > 2} // Disable if it's an existing course (has more than just id and category)
                     onChange={e => onChange({ ...course, id: e.target.value })}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all disabled:opacity-50"
                   />
                 </div>
                 <div className="space-y-2">

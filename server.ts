@@ -29,9 +29,29 @@ async function initDB() {
       title TEXT,
       category TEXT,
       level TEXT,
-      description TEXT
+      description TEXT,
+      prerequisites TEXT,
+      price REAL,
+      duration TEXT,
+      url TEXT
     );
   `);
+
+  // Check if we need to add missing columns (for existing databases)
+  const columns = await db.all("PRAGMA table_info(courses)");
+  const columnNames = columns.map(c => c.name);
+  if (!columnNames.includes('prerequisites')) {
+    await db.exec("ALTER TABLE courses ADD COLUMN prerequisites TEXT");
+  }
+  if (!columnNames.includes('price')) {
+    await db.exec("ALTER TABLE courses ADD COLUMN price REAL");
+  }
+  if (!columnNames.includes('duration')) {
+    await db.exec("ALTER TABLE courses ADD COLUMN duration TEXT");
+  }
+  if (!columnNames.includes('url')) {
+    await db.exec("ALTER TABLE courses ADD COLUMN url TEXT");
+  }
 
   // MIGRATION LOGIC: Check if the table is empty. If it is, migrate the data!
   const row = await db.get('SELECT COUNT(*) as count FROM courses');
@@ -40,8 +60,18 @@ async function initDB() {
     
     for (const course of ELITC_COURSES) {
       await db.run(
-        'INSERT INTO courses (id, title, category, level, description) VALUES (?, ?, ?, ?, ?)',
-        [course.id, course.title, course.category, course.level, course.description]
+        'INSERT INTO courses (id, title, category, level, description, prerequisites, price, duration, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          course.id,
+          course.title,
+          course.category,
+          course.level,
+          course.description,
+          JSON.stringify(course.prerequisites || []),
+          course.price || 0,
+          course.duration,
+          course.url
+        ]
       );
     }
     console.log(`✅ Successfully migrated ${ELITC_COURSES.length} courses to SQLite!`);
@@ -73,8 +103,18 @@ app.post('/api/courses', async (req, res) => {
 
     try {
         await db.run(
-            'INSERT INTO courses (id, title, category, level, description) VALUES (?, ?, ?, ?, ?)',
-            [id, course.title, course.category, course.level, course.description]
+            'INSERT INTO courses (id, title, category, level, description, prerequisites, price, duration, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [
+              id,
+              course.title,
+              course.category,
+              course.level,
+              course.description,
+              JSON.stringify(course.prerequisites || []),
+              course.price || 0,
+              course.duration,
+              course.url
+            ]
         );
         res.status(201).json({ ...course, id }); // Send back the created course
     } catch (error) {
@@ -91,8 +131,18 @@ app.put('/api/courses/:id', async (req, res) => {
 
     try {
         await db.run(
-            'UPDATE courses SET title = ?, category = ?, level = ?, description = ? WHERE id = ?',
-            [course.title, course.category, course.level, course.description, id]
+            'UPDATE courses SET title = ?, category = ?, level = ?, description = ?, prerequisites = ?, price = ?, duration = ?, url = ? WHERE id = ?',
+            [
+              course.title,
+              course.category,
+              course.level,
+              course.description,
+              JSON.stringify(course.prerequisites || []),
+              course.price || 0,
+              course.duration,
+              course.url,
+              id
+            ]
         );
         res.json({ ...course, id }); // Send back the updated course
     } catch (error) {

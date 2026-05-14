@@ -16,15 +16,18 @@ export const dbService = {
         try {
             const response = await fetch(`${API_BASE_URL}/courses`);
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-            return await response.json();
+            const data = await response.json();
+            return data.map((c: any) => ({
+                ...c,
+                prerequisites: typeof c.prerequisites === 'string' ? JSON.parse(c.prerequisites) : (c.prerequisites || [])
+            }));
         } catch (error) {
             console.warn("Backend not ready, falling back to default courses", error);
             return ELITC_COURSES;
         }
     },
 
-    async saveCourse(course: Partial<Course>) {
-        const isUpdate = !!course.id;
+    async saveCourse(course: Partial<Course>, isUpdate: boolean = false) {
         const url = isUpdate ? `${API_BASE_URL}/courses/${course.id}` : `${API_BASE_URL}/courses`;
         const method = isUpdate ? 'PUT' : 'POST';
 
@@ -83,5 +86,8 @@ export const dbService = {
         return () => { };
     },
     async saveConfig(config: Partial<Config>) { return config; },
-    async migrateData() { return 0; }
+    async migrateData(onProgress?: (message: string) => void) {
+        if (onProgress) onProgress("Migration started...");
+        return 0;
+    }
 };
