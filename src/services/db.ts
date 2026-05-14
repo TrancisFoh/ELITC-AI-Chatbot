@@ -19,7 +19,8 @@ export const dbService = {
             const data = await response.json();
             return data.map((c: any) => ({
                 ...c,
-                prerequisites: typeof c.prerequisites === 'string' ? JSON.parse(c.prerequisites) : (c.prerequisites || [])
+                objectives: typeof c.objectives === 'string' ? JSON.parse(c.objectives) : (c.objectives || []),
+                targetAudience: typeof c.targetAudience === 'string' ? JSON.parse(c.targetAudience) : (c.targetAudience || [])
             }));
         } catch (error) {
             console.warn("Backend not ready, falling back to default courses", error);
@@ -31,7 +32,7 @@ export const dbService = {
         const url = isUpdate ? `${API_BASE_URL}/courses/${course.id}` : `${API_BASE_URL}/courses`;
         const method = isUpdate ? 'PUT' : 'POST';
 
-        console.log(`Sending ${method} request to ${url}`, course); // Debug log
+        console.log(`Sending ${method} request to ${url}`, course);
 
         try {
             const response = await fetch(url, {
@@ -49,14 +50,12 @@ export const dbService = {
             return await response.json();
         } catch (error: any) {
             console.error("CRITICAL SAVE ERROR:", error);
-            alert(`❌ Failed to save course!\n\nError: ${error.message}\n\nCheck your backend terminal for more details.`);
+            alert(`❌ Failed to save course!\n\nError: ${error.message}`);
             throw error;
         }
     },
 
     async deleteCourse(id: string) {
-        console.log(`Sending DELETE request for course ID: ${id}`); // Debug log
-
         try {
             const response = await fetch(`${API_BASE_URL}/courses/${id}`, {
                 method: 'DELETE'
@@ -71,12 +70,12 @@ export const dbService = {
             return await response.json();
         } catch (error: any) {
             console.error("CRITICAL DELETE ERROR:", error);
-            alert(`❌ Failed to delete course!\n\nError: ${error.message}\n\nCheck your backend terminal for more details.`);
+            alert(`❌ Failed to delete course!\n\nError: ${error.message}`);
             throw error;
         }
     },
 
-    // --- Configs (Left minimal for now) ---
+    // --- Configs ---
     subscribeToConfigs(onUpdate: (configs: Config[]) => void) {
         fetch(`${API_BASE_URL}/configs`).then(res => res.json()).then(onUpdate).catch(() => onUpdate([]));
         return () => { };

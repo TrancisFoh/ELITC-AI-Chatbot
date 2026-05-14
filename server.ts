@@ -9,8 +9,8 @@ const PORT = 3001;
 
 // Middleware
 app.use(cors({
-    origin: '*', // Allows requests from any origin (e.g., your localhost:3000)
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly allows all methods
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
@@ -18,66 +18,41 @@ app.use(express.json());
 // Initialize Database and Run Migration
 async function initDB() {
   const db = await open({
-    filename: './database.sqlite', // This creates a local DB file
+    filename: './database.sqlite',
     driver: sqlite3.Database
   });
 
-  // Create the courses table
+  // Re-create the courses table with the requested schema
+  await db.exec(`DROP TABLE IF EXISTS courses;`);
   await db.exec(`
-    CREATE TABLE IF NOT EXISTS courses (
+    CREATE TABLE courses (
       id TEXT PRIMARY KEY,
       title TEXT,
       category TEXT,
-      level TEXT,
-      description TEXT,
-      prerequisites TEXT,
-      price REAL,
       duration TEXT,
-      url TEXT
+      synopsis TEXT,
+      objectives TEXT,
+      targetAudience TEXT
     );
   `);
 
-  // Check if we need to add missing columns (for existing databases)
-  const columns = await db.all("PRAGMA table_info(courses)");
-  const columnNames = columns.map(c => c.name);
-  if (!columnNames.includes('prerequisites')) {
-    await db.exec("ALTER TABLE courses ADD COLUMN prerequisites TEXT");
-  }
-  if (!columnNames.includes('price')) {
-    await db.exec("ALTER TABLE courses ADD COLUMN price REAL");
-  }
-  if (!columnNames.includes('duration')) {
-    await db.exec("ALTER TABLE courses ADD COLUMN duration TEXT");
-  }
-  if (!columnNames.includes('url')) {
-    await db.exec("ALTER TABLE courses ADD COLUMN url TEXT");
-  }
+  console.log("Database schema updated. Migrating courses from src/data/courses.ts...");
 
-  // MIGRATION LOGIC: Check if the table is empty. If it is, migrate the data!
-  const row = await db.get('SELECT COUNT(*) as count FROM courses');
-  if (row.count === 0) {
-    console.log("Database is empty. Migrating courses from src/data/courses.ts...");
-    
-    for (const course of ELITC_COURSES) {
-      await db.run(
-        'INSERT INTO courses (id, title, category, level, description, prerequisites, price, duration, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [
-          course.id,
-          course.title,
-          course.category,
-          course.level,
-          course.description,
-          JSON.stringify(course.prerequisites || []),
-          course.price || 0,
-          course.duration,
-          course.url
-        ]
-      );
-    }
-    console.log(`✅ Successfully migrated ${ELITC_COURSES.length} courses to SQLite!`);
-  } else {
-    console.log(`✅ Database ready. Found ${row.count} existing courses.`);
+  for (const course of ELITC_COURSES) {
+    await db.run(
+      'INSERT INTO courses (id, title, category, duration, synopsis, objectives, targetAudience) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        course.id,
+        course.title,
+        course.category,
+        course.duration,
+        course.synopsis,
+        JSON.stringify(course.objectives || []),
+        JSON.stringify(course.targetAudience || [])
+      ]
+    );
   }
+  console.log(`✅ Successfully migrated ${ELITC_COURSES.length} courses to SQLite!`);
 
   return db;
 }
@@ -97,26 +72,22 @@ app.get('/api/courses', async (req, res) => {
 app.post('/api/courses', async (req, res) => {
     const db = await dbPromise;
     const course = req.body;
-
-    // The frontend might send an ID, if not, generate a unique one
     const id = course.id || `C-${Date.now()}`;
 
     try {
         await db.run(
-            'INSERT INTO courses (id, title, category, level, description, prerequisites, price, duration, url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO courses (id, title, category, duration, synopsis, objectives, targetAudience) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [
               id,
               course.title,
               course.category,
-              course.level,
-              course.description,
-              JSON.stringify(course.prerequisites || []),
-              course.price || 0,
               course.duration,
-              course.url
+              course.synopsis,
+              JSON.stringify(course.objectives || []),
+              JSON.stringify(course.targetAudience || [])
             ]
         );
-        res.status(201).json({ ...course, id }); // Send back the created course
+        res.status(201).json({ ...course, id });
     } catch (error) {
         console.error("Error adding course:", error);
         res.status(500).json({ error: "Failed to add course" });
@@ -131,20 +102,18 @@ app.put('/api/courses/:id', async (req, res) => {
 
     try {
         await db.run(
-            'UPDATE courses SET title = ?, category = ?, level = ?, description = ?, prerequisites = ?, price = ?, duration = ?, url = ? WHERE id = ?',
+            'UPDATE courses SET title = ?, category = ?, duration = ?, synopsis = ?, objectives = ?, targetAudience = ? WHERE id = ?',
             [
               course.title,
               course.category,
-              course.level,
-              course.description,
-              JSON.stringify(course.prerequisites || []),
-              course.price || 0,
               course.duration,
-              course.url,
+              course.synopsis,
+              JSON.stringify(course.objectives || []),
+              JSON.stringify(course.targetAudience || []),
               id
             ]
         );
-        res.json({ ...course, id }); // Send back the updated course
+        res.json({ ...course, id });
     } catch (error) {
         console.error("Error updating course:", error);
         res.status(500).json({ error: "Failed to update course" });
@@ -158,14 +127,13 @@ app.delete('/api/courses/:id', async (req, res) => {
 
     try {
         await db.run('DELETE FROM courses WHERE id = ?', [id]);
-        res.json({ success: true, id }); // Confirm deletion
+        res.json({ success: true, id });
     } catch (error) {
         console.error("Error deleting course:", error);
         res.status(500).json({ error: "Failed to delete course" });
     }
 });
 
-// Fallback for system configs so your UI doesn't break
 app.get('/api/configs/system-instruction', (req, res) => {
     res.json({ value: "You are the ELITC Assistant, an expert training consultant for the Electronics Industries Training Centre." });
 });
