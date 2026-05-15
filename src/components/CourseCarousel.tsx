@@ -70,13 +70,17 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
 
               <div className="border-t border-dashed border-zinc-200 my-0.5" />
 
-              <div
-                className="flex items-center justify-center gap-1.5 text-elitc-gold-dark font-bold text-[12px]"
-                id={`card-info-${idx}`}
+              {/* External link to the ELITC website for full course details */}
+              <a
+                href={course.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 text-elitc-gold-dark font-bold text-[12px] hover:translate-x-1 transition-transform"
+                id={`card-link-${idx}`}
               >
-                Enquire for details
+                View Course
                 <ChevronRight className="w-3.5 h-3.5" />
-              </div>
+              </a>
             </div>
           </div>
         ))}

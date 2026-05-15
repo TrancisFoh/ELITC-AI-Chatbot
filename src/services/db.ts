@@ -19,6 +19,7 @@ export const dbService = {
             const data = await response.json();
             return data.map((c: any) => ({
                 ...c,
+                prerequisites: typeof c.prerequisites === 'string' ? JSON.parse(c.prerequisites) : (c.prerequisites || []),
                 objectives: typeof c.objectives === 'string' ? JSON.parse(c.objectives) : (c.objectives || []),
                 targetAudience: typeof c.targetAudience === 'string' ? JSON.parse(c.targetAudience) : (c.targetAudience || [])
             }));
@@ -46,11 +47,9 @@ export const dbService = {
                 throw new Error(`Server returned ${response.status}: ${errorData}`);
             }
 
-            alert("✅ Course successfully saved to database!");
             return await response.json();
         } catch (error: any) {
             console.error("CRITICAL SAVE ERROR:", error);
-            alert(`❌ Failed to save course!\n\nError: ${error.message}`);
             throw error;
         }
     },
@@ -66,11 +65,9 @@ export const dbService = {
                 throw new Error(`Server returned ${response.status}: ${errorData}`);
             }
 
-            alert("🗑️ Course successfully deleted!");
             return await response.json();
         } catch (error: any) {
             console.error("CRITICAL DELETE ERROR:", error);
-            alert(`❌ Failed to delete course!\n\nError: ${error.message}`);
             throw error;
         }
     },

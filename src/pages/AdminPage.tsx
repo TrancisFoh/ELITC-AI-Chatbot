@@ -286,6 +286,7 @@ export default function AdminPage() {
 
             <CourseEditor
                 course={editingCourse}
+                isUpdate={isEditingExistingCourse}
                 onClose={() => setEditingCourse(null)}
                 onSave={saveCourse}
                 onChange={setEditingCourse}

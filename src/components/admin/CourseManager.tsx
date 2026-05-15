@@ -46,10 +46,10 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-50/50 border-b border-zinc-100">
-                <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Code</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Course Name</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">ID</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Course Title</th>
                 <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Duration</th>
+                <th className="px-6 py-4 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Level</th>
                 <th className="px-6 py-4 text-right text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -63,7 +63,7 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-zinc-900 line-clamp-1">{course.title}</p>
-                      <p className="text-xs text-zinc-400 line-clamp-1">{course.synopsis}</p>
+                      <p className="text-xs text-zinc-400 line-clamp-1">{course.description}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
@@ -76,7 +76,7 @@ export const CourseManager: React.FC<CourseManagerProps> = ({
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs text-zinc-600">{course.duration}</span>
+                      <span className="text-xs text-zinc-600">{course.level}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

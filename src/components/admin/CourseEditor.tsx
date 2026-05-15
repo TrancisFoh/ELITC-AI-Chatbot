@@ -5,12 +5,13 @@ import { Course } from '../../types';
 
 interface CourseEditorProps {
   course: Partial<Course> | null;
+  isUpdate?: boolean;
   onClose: () => void;
   onSave: () => void;
   onChange: (course: Partial<Course>) => void;
 }
 
-export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onSave, onChange }) => {
+export const CourseEditor: React.FC<CourseEditorProps> = ({ course, isUpdate, onClose, onSave, onChange }) => {
   return (
     <AnimatePresence>
       {course && (
@@ -30,8 +31,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
           >
             <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-gradient-to-r from-zinc-50 to-white">
               <div>
-                <h2 className="text-xl font-bold text-zinc-900">{course.id && Object.keys(course).length > 2 ? 'Edit Course' : 'New Course'}</h2>
-                <p className="text-xs text-zinc-500 font-medium">Define the core data for this program.</p>
+                <h2 className="text-xl font-bold text-zinc-900">{isUpdate ? 'Edit Course' : 'New Course'}</h2>
+                <p className="text-xs text-zinc-500 font-medium">Define the technical details for this program.</p>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-all">
                 <X className="w-5 h-5 text-zinc-400" />
@@ -41,13 +42,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
             <div className="p-8 overflow-y-auto flex-1 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label htmlFor="course-id" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course Code</label>
+                  <label htmlFor="course-id" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course ID</label>
                   <input
                     id="course-id"
                     type="text"
                     placeholder="e.g. WSQ-001"
                     value={course.id || ''}
-                    disabled={!!course.id && Object.keys(course).length > 2}
+                    disabled={isUpdate}
                     onChange={e => onChange({ ...course, id: e.target.value })}
                     className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all disabled:opacity-50"
                   />
@@ -70,7 +71,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="course-title" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course Name</label>
+                <label htmlFor="course-title" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Full Course Title</label>
                 <input
                   id="course-title"
                   type="text"
@@ -81,46 +82,75 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="course-synopsis" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Synopsis</label>
+                <label htmlFor="course-description" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Marketing Description</label>
                 <textarea
-                  id="course-synopsis"
-                  rows={3}
-                  value={course.synopsis || ''}
-                  onChange={e => onChange({ ...course, synopsis: e.target.value })}
+                  id="course-description"
+                  rows={4}
+                  value={course.description || ''}
+                  onChange={e => onChange({ ...course, description: e.target.value })}
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="course-duration" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Duration</label>
+                  <input
+                    id="course-duration"
+                    type="text"
+                    value={course.duration || ''}
+                    onChange={e => onChange({ ...course, duration: e.target.value })}
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="course-level" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Skill Level</label>
+                  <select
+                    id="course-level"
+                    value={course.level || 'Intermediate'}
+                    onChange={e => onChange({ ...course, level: e.target.value as any })}
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Professional">Professional</option>
+                  </select>
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <label htmlFor="course-objectives" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Objectives (one per line)</label>
+                <label htmlFor="course-url" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Official Website URL</label>
+                <input
+                  id="course-url"
+                  type="url"
+                  value={course.url || ''}
+                  onChange={e => onChange({ ...course, url: e.target.value })}
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="course-objectives" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course Objectives (comma separated)</label>
                 <textarea
                   id="course-objectives"
                   rows={3}
-                  value={course.objectives?.join('\n') || ''}
-                  onChange={e => onChange({ ...course, objectives: e.target.value.split('\n').filter(s => s.trim() !== '') })}
+                  value={course.objectives?.join(', ') || ''}
+                  onChange={e => onChange({ ...course, objectives: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
+                  placeholder="e.g. Master soldering skills, Understand IPC standards"
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="course-audience" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Target Audience (one per line)</label>
+                <label htmlFor="course-audience" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Target Audience (comma separated)</label>
                 <textarea
                   id="course-audience"
                   rows={3}
-                  value={course.targetAudience?.join('\n') || ''}
-                  onChange={e => onChange({ ...course, targetAudience: e.target.value.split('\n').filter(s => s.trim() !== '') })}
+                  value={course.targetAudience?.join(', ') || ''}
+                  onChange={e => onChange({ ...course, targetAudience: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="course-duration" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Duration</label>
-                <input
-                  id="course-duration"
-                  type="text"
-                  value={course.duration || ''}
-                  onChange={e => onChange({ ...course, duration: e.target.value })}
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                  placeholder="e.g. Technicians, Engineers, Quality Control staff"
                 />
               </div>
             </div>

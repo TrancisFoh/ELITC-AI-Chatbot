@@ -2,13 +2,17 @@
  * Represents a training course offered by ELITC.
  */
 export interface Course {
-  id: string; // Course Code
-  title: string; // Course Name
-  category: string;
+  id: string;
+  title: string;
+  description: string;
+  prerequisites: string[];
+  price: number;
   duration: string;
-  synopsis: string;
-  objectives: string[];
-  targetAudience: string[];
+  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Professional';
+  url: string;
+  category: string;
+  objectives?: string[];
+  targetAudience?: string[];
 }
 
 /**

@@ -22,37 +22,51 @@ async function initDB() {
     driver: sqlite3.Database
   });
 
-  // Re-create the courses table with the requested schema
-  await db.exec(`DROP TABLE IF EXISTS courses;`);
+  // Create the courses table if it doesn't exist
   await db.exec(`
-    CREATE TABLE courses (
+    CREATE TABLE IF NOT EXISTS courses (
       id TEXT PRIMARY KEY,
       title TEXT,
       category TEXT,
+      level TEXT,
+      description TEXT,
+      prerequisites TEXT,
+      price REAL,
       duration TEXT,
-      synopsis TEXT,
+      url TEXT,
       objectives TEXT,
       targetAudience TEXT
     );
   `);
 
-  console.log("Database schema updated. Migrating courses from src/data/courses.ts...");
+  // Check if we need to migrate initial data
+  const count = await db.get('SELECT COUNT(*) as count FROM courses');
 
-  for (const course of ELITC_COURSES) {
-    await db.run(
-      'INSERT INTO courses (id, title, category, duration, synopsis, objectives, targetAudience) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        course.id,
-        course.title,
-        course.category,
-        course.duration,
-        course.synopsis,
-        JSON.stringify(course.objectives || []),
-        JSON.stringify(course.targetAudience || [])
-      ]
-    );
+  if (count.count === 0) {
+    console.log("Database is empty. Migrating courses from src/data/courses.ts...");
+
+    for (const course of ELITC_COURSES) {
+      await db.run(
+        'INSERT INTO courses (id, title, category, level, description, prerequisites, price, duration, url, objectives, targetAudience) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          course.id,
+          course.title,
+          course.category,
+          course.level,
+          course.description,
+          JSON.stringify(course.prerequisites || []),
+          course.price || 0,
+          course.duration,
+          course.url,
+          JSON.stringify(course.objectives || []),
+          JSON.stringify(course.targetAudience || [])
+        ]
+      );
+    }
+    console.log(`✅ Successfully migrated ${ELITC_COURSES.length} courses to SQLite!`);
+  } else {
+    console.log(`ℹ️ Database already contains ${count.count} courses. Skipping migration.`);
   }
-  console.log(`✅ Successfully migrated ${ELITC_COURSES.length} courses to SQLite!`);
 
   return db;
 }
@@ -76,13 +90,17 @@ app.post('/api/courses', async (req, res) => {
 
     try {
         await db.run(
-            'INSERT INTO courses (id, title, category, duration, synopsis, objectives, targetAudience) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO courses (id, title, category, level, description, prerequisites, price, duration, url, objectives, targetAudience) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               id,
               course.title,
               course.category,
+              course.level,
+              course.description,
+              JSON.stringify(course.prerequisites || []),
+              course.price || 0,
               course.duration,
-              course.synopsis,
+              course.url,
               JSON.stringify(course.objectives || []),
               JSON.stringify(course.targetAudience || [])
             ]
@@ -102,12 +120,16 @@ app.put('/api/courses/:id', async (req, res) => {
 
     try {
         await db.run(
-            'UPDATE courses SET title = ?, category = ?, duration = ?, synopsis = ?, objectives = ?, targetAudience = ? WHERE id = ?',
+            'UPDATE courses SET title = ?, category = ?, level = ?, description = ?, prerequisites = ?, price = ?, duration = ?, url = ?, objectives = ?, targetAudience = ? WHERE id = ?',
             [
               course.title,
               course.category,
+              course.level,
+              course.description,
+              JSON.stringify(course.prerequisites || []),
+              course.price || 0,
               course.duration,
-              course.synopsis,
+              course.url,
               JSON.stringify(course.objectives || []),
               JSON.stringify(course.targetAudience || []),
               id
