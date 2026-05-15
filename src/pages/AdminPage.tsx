@@ -33,6 +33,8 @@ export default function AdminPage() {
     const [editingCourse, setEditingCourse] = useState<Partial<Course> | null>(null);
     const [isEditingExistingCourse, setIsEditingExistingCourse] = useState(false);
     const [editingConfig, setEditingConfig] = useState<Partial<Config> | null>(null);
+    const [saveLoading, setSaveLoading] = useState(false);
+    const [crudError, setCrudError] = useState<string | null>(null);
 
     const [migrationStatus, setMigrationStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
     const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -108,21 +110,39 @@ export default function AdminPage() {
 
     // --- CRUD OPERATIONS ---
     const saveCourse = async () => {
-        if (!editingCourse?.title) return;
+        if (!editingCourse?.id) {
+            setCrudError("Course ID is required.");
+            return;
+        }
+        if (!editingCourse?.title) {
+            setCrudError("Course Title is required.");
+            return;
+        }
+
+        setSaveLoading(true);
+        setCrudError(null);
         try {
             await dbService.saveCourse(editingCourse, isEditingExistingCourse);
             setEditingCourse(null);
             setIsEditingExistingCourse(false);
             refreshData();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Error saving course:", e);
+            setCrudError(e.message || "Failed to save course. Check if ID already exists.");
+        } finally {
+            setSaveLoading(false);
         }
     };
 
     const deleteCourse = async (id: string) => {
         if (confirm('Are you sure you want to delete this course?')) {
-            await dbService.deleteCourse(id);
-            refreshData(); // FIX: Re-fetch data to update the UI
+            setCrudError(null);
+            try {
+                await dbService.deleteCourse(id);
+                refreshData();
+            } catch (e: any) {
+                setCrudError(e.message || "Failed to delete course.");
+            }
         }
     };
 
@@ -287,9 +307,17 @@ export default function AdminPage() {
             <CourseEditor
                 course={editingCourse}
                 isUpdate={isEditingExistingCourse}
-                onClose={() => setEditingCourse(null)}
+                isLoading={saveLoading}
+                error={crudError}
+                onClose={() => {
+                    setEditingCourse(null);
+                    setCrudError(null);
+                }}
                 onSave={saveCourse}
-                onChange={setEditingCourse}
+                onChange={(c) => {
+                    setEditingCourse(c);
+                    setCrudError(null);
+                }}
             />
 
             <ConfigEditor

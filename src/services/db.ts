@@ -43,8 +43,8 @@ export const dbService = {
             });
 
             if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(`Server returned ${response.status}: ${errorData}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server returned ${response.status}`);
             }
 
             return await response.json();
@@ -61,8 +61,8 @@ export const dbService = {
             });
 
             if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(`Server returned ${response.status}: ${errorData}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server returned ${response.status}`);
             }
 
             return await response.json();

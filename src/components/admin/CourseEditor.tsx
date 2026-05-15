@@ -1,17 +1,27 @@
 import React from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Course } from '../../types';
 
 interface CourseEditorProps {
   course: Partial<Course> | null;
   isUpdate?: boolean;
+  isLoading?: boolean;
+  error?: string | null;
   onClose: () => void;
   onSave: () => void;
   onChange: (course: Partial<Course>) => void;
 }
 
-export const CourseEditor: React.FC<CourseEditorProps> = ({ course, isUpdate, onClose, onSave, onChange }) => {
+export const CourseEditor: React.FC<CourseEditorProps> = ({
+  course,
+  isUpdate,
+  isLoading,
+  error,
+  onClose,
+  onSave,
+  onChange
+}) => {
   return (
     <AnimatePresence>
       {course && (
@@ -40,6 +50,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, isUpdate, on
             </div>
 
             <div className="p-8 overflow-y-auto flex-1 space-y-6">
+              {error && (
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3 text-rose-600 text-sm animate-in fade-in slide-in-from-top-2">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p className="font-medium">{error}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label htmlFor="course-id" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course ID</label>
@@ -131,26 +148,26 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, isUpdate, on
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="course-objectives" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course Objectives (comma separated)</label>
+                <label htmlFor="course-objectives" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course Objectives (one per line)</label>
                 <textarea
                   id="course-objectives"
                   rows={3}
-                  value={course.objectives?.join(', ') || ''}
-                  onChange={e => onChange({ ...course, objectives: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
+                  value={course.objectives?.join('\n') || ''}
+                  onChange={e => onChange({ ...course, objectives: e.target.value.split('\n').filter(s => s.trim() !== '') })}
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
-                  placeholder="e.g. Master soldering skills, Understand IPC standards"
+                  placeholder="Master soldering skills&#10;Understand IPC standards"
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="course-audience" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Target Audience (comma separated)</label>
+                <label htmlFor="course-audience" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Target Audience (one per line)</label>
                 <textarea
                   id="course-audience"
                   rows={3}
-                  value={course.targetAudience?.join(', ') || ''}
-                  onChange={e => onChange({ ...course, targetAudience: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
+                  value={course.targetAudience?.join('\n') || ''}
+                  onChange={e => onChange({ ...course, targetAudience: e.target.value.split('\n').filter(s => s.trim() !== '') })}
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
-                  placeholder="e.g. Technicians, Engineers, Quality Control staff"
+                  placeholder="Technicians&#10;Engineers&#10;Quality Control staff"
                 />
               </div>
             </div>
@@ -164,10 +181,15 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, isUpdate, on
               </button>
               <button
                 onClick={onSave}
-                className="bg-elitc-gold hover:bg-elitc-gold-dark text-white px-8 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-elitc-gold/20 flex items-center gap-2 transition-all active:scale-95"
+                disabled={isLoading}
+                className="bg-elitc-gold hover:bg-elitc-gold-dark text-white px-8 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-elitc-gold/20 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="w-4 h-4" />
-                Apply Changes
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isLoading ? 'Saving...' : 'Apply Changes'}
               </button>
             </div>
           </motion.div>

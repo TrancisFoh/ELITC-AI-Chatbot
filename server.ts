@@ -106,9 +106,13 @@ app.post('/api/courses', async (req, res) => {
             ]
         );
         res.status(201).json({ ...course, id });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error adding course:", error);
-        res.status(500).json({ error: "Failed to add course" });
+        if (error.code === 'SQLITE_CONSTRAINT') {
+            res.status(409).json({ error: "Course ID already exists. Please use a unique ID." });
+        } else {
+            res.status(500).json({ error: "Failed to add course: " + error.message });
+        }
     }
 });
 
@@ -119,7 +123,7 @@ app.put('/api/courses/:id', async (req, res) => {
     const course = req.body;
 
     try {
-        await db.run(
+        const result = await db.run(
             'UPDATE courses SET title = ?, category = ?, level = ?, description = ?, prerequisites = ?, price = ?, duration = ?, url = ?, objectives = ?, targetAudience = ? WHERE id = ?',
             [
               course.title,
@@ -135,10 +139,15 @@ app.put('/api/courses/:id', async (req, res) => {
               id
             ]
         );
-        res.json({ ...course, id });
-    } catch (error) {
+
+        if (result.changes === 0) {
+            res.status(404).json({ error: "Course not found" });
+        } else {
+            res.json({ ...course, id });
+        }
+    } catch (error: any) {
         console.error("Error updating course:", error);
-        res.status(500).json({ error: "Failed to update course" });
+        res.status(500).json({ error: "Failed to update course: " + error.message });
     }
 });
 
