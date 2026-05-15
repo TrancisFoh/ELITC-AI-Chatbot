@@ -31,6 +31,7 @@ export default function AdminPage() {
     const [migrationLoading, setMigrationLoading] = useState(false);
 
     const [editingCourse, setEditingCourse] = useState<Partial<Course> | null>(null);
+    const [isEditingExistingCourse, setIsEditingExistingCourse] = useState(false);
     const [editingConfig, setEditingConfig] = useState<Partial<Config> | null>(null);
 
     const [migrationStatus, setMigrationStatus] = useState<{ type: 'idle' | 'success' | 'error'; message: string }>({ type: 'idle', message: '' });
@@ -107,12 +108,12 @@ export default function AdminPage() {
 
     // --- CRUD OPERATIONS ---
     const saveCourse = async () => {
-        // FIX: Removed the ID check so new courses can be saved properly
         if (!editingCourse?.title) return;
         try {
-            await dbService.saveCourse(editingCourse);
+            await dbService.saveCourse(editingCourse, isEditingExistingCourse);
             setEditingCourse(null);
-            refreshData(); // FIX: Re-fetch data to update the UI
+            setIsEditingExistingCourse(false);
+            refreshData();
         } catch (e) {
             console.error("Error saving course:", e);
         }
@@ -253,9 +254,15 @@ export default function AdminPage() {
                         courses={courses}
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
-                        onEdit={setEditingCourse}
+                        onEdit={(course) => {
+                            setEditingCourse(course);
+                            setIsEditingExistingCourse(true);
+                        }}
                         onDelete={deleteCourse}
-                        onAdd={() => setEditingCourse({ category: 'WSQ' })}
+                        onAdd={() => {
+                            setEditingCourse({ category: 'WSQ' });
+                            setIsEditingExistingCourse(false);
+                        }}
                     />
                 )}
 
@@ -279,6 +286,7 @@ export default function AdminPage() {
 
             <CourseEditor
                 course={editingCourse}
+                isUpdate={isEditingExistingCourse}
                 onClose={() => setEditingCourse(null)}
                 onSave={saveCourse}
                 onChange={setEditingCourse}

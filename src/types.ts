@@ -11,6 +11,8 @@ export interface Course {
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Professional';
   url: string;
   category: string;
+  objectives?: string[];
+  targetAudience?: string[];
 }
 
 /**

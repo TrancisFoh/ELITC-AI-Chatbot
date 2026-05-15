@@ -5,12 +5,13 @@ import { Course } from '../../types';
 
 interface CourseEditorProps {
   course: Partial<Course> | null;
+  isUpdate?: boolean;
   onClose: () => void;
   onSave: () => void;
   onChange: (course: Partial<Course>) => void;
 }
 
-export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onSave, onChange }) => {
+export const CourseEditor: React.FC<CourseEditorProps> = ({ course, isUpdate, onClose, onSave, onChange }) => {
   return (
     <AnimatePresence>
       {course && (
@@ -30,7 +31,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
           >
             <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-gradient-to-r from-zinc-50 to-white">
               <div>
-                <h2 className="text-xl font-bold text-zinc-900">{course.id ? 'Edit Course' : 'New Course'}</h2>
+                <h2 className="text-xl font-bold text-zinc-900">{isUpdate ? 'Edit Course' : 'New Course'}</h2>
                 <p className="text-xs text-zinc-500 font-medium">Define the technical details for this program.</p>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-all">
@@ -41,18 +42,21 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
             <div className="p-8 overflow-y-auto flex-1 space-y-6">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course ID</label>
+                  <label htmlFor="course-id" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course ID</label>
                   <input
+                    id="course-id"
                     type="text"
                     placeholder="e.g. WSQ-001"
                     value={course.id || ''}
+                    disabled={isUpdate}
                     onChange={e => onChange({ ...course, id: e.target.value })}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all disabled:opacity-50"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Category</label>
+                  <label htmlFor="course-category" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Category</label>
                   <select
+                    id="course-category"
                     value={course.category || 'WSQ'}
                     onChange={e => onChange({ ...course, category: e.target.value })}
                     className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
@@ -67,8 +71,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Full Course Title</label>
+                <label htmlFor="course-title" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Full Course Title</label>
                 <input
+                  id="course-title"
                   type="text"
                   value={course.title || ''}
                   onChange={e => onChange({ ...course, title: e.target.value })}
@@ -77,8 +82,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Marketing Description</label>
+                <label htmlFor="course-description" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Marketing Description</label>
                 <textarea
+                  id="course-description"
                   rows={4}
                   value={course.description || ''}
                   onChange={e => onChange({ ...course, description: e.target.value })}
@@ -88,8 +94,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Duration</label>
+                  <label htmlFor="course-duration" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Duration</label>
                   <input
+                    id="course-duration"
                     type="text"
                     value={course.duration || ''}
                     onChange={e => onChange({ ...course, duration: e.target.value })}
@@ -97,8 +104,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Skill Level</label>
+                  <label htmlFor="course-level" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Skill Level</label>
                   <select
+                    id="course-level"
                     value={course.level || 'Intermediate'}
                     onChange={e => onChange({ ...course, level: e.target.value as any })}
                     className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
@@ -112,12 +120,37 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({ course, onClose, onS
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Official Website URL</label>
+                <label htmlFor="course-url" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Official Website URL</label>
                 <input
+                  id="course-url"
                   type="url"
                   value={course.url || ''}
                   onChange={e => onChange({ ...course, url: e.target.value })}
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="course-objectives" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Course Objectives (comma separated)</label>
+                <textarea
+                  id="course-objectives"
+                  rows={3}
+                  value={course.objectives?.join(', ') || ''}
+                  onChange={e => onChange({ ...course, objectives: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
+                  placeholder="e.g. Master soldering skills, Understand IPC standards"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="course-audience" className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">Target Audience (comma separated)</label>
+                <textarea
+                  id="course-audience"
+                  rows={3}
+                  value={course.targetAudience?.join(', ') || ''}
+                  onChange={e => onChange({ ...course, targetAudience: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
+                  className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none"
+                  placeholder="e.g. Technicians, Engineers, Quality Control staff"
                 />
               </div>
             </div>

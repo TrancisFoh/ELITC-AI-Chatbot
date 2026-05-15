@@ -71,7 +71,7 @@ export const CourseCarousel = ({ courses }: CourseCarouselProps) => {
               <div className="border-t border-dashed border-zinc-200 my-0.5" />
 
               {/* External link to the ELITC website for full course details */}
-              <a 
+              <a
                 href={course.url}
                 target="_blank"
                 rel="noopener noreferrer"
