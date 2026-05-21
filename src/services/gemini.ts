@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { dbService } from "./db";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -46,7 +47,8 @@ export async function chatWithAI(
   message: string, 
   history: { role: 'user' | 'model', parts: { text: string }[] }[],
   systemInstruction?: string,
-  onChunk?: (text: string) => void
+  onChunk?: (text: string) => void,
+  sessionId?: string
 ): Promise<{ content: string; isError: boolean }> {
   try {
     // Initialize a new chat session with the full conversation context
@@ -89,6 +91,14 @@ export async function chatWithAI(
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     
+    // Log the error to our SQLite database
+    dbService.saveErrorLog({
+      session_id: sessionId,
+      error_message: error?.message || String(error),
+      stack_trace: error?.stack || undefined,
+      component: "gemini.chatWithAI"
+    });
+
     // Provide user-friendly errors based on common failure modes (Quota, Safety Filters, etc.)
     const errorMessage = error?.message?.toLowerCase() || "";
     let content = "I'm having a small technical hiccup. 💫 Could you please try sending that again? I'm eager to help you find the right course!";

@@ -4,8 +4,11 @@
 export interface Course {
   id: string;
   title: string;
-  description: string;
-  prerequisites: string[];
+  description?: string;
+  synopsis?: string;
+  objectives?: string[];
+  targetAudience?: string[];
+  prerequisites?: string[];
   price: number;
   duration: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Professional';

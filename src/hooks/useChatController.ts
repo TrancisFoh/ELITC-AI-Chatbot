@@ -10,6 +10,7 @@ import {
   getSuggestedFollowUps,
   detectCategory
 } from '../services/messageHandler';
+import { retrieveCourses } from '../services/rag';
 
 /**
  * Primary custom hook to manage the chat operations.
@@ -24,6 +25,14 @@ export function useChatController() {
   
   const [dbCourses, setDbCourses] = useState<Course[]>([]);
   const [systemInstruction, setSystemInstruction] = useState<string | undefined>(undefined);
+
+  const [sessionId] = useState(() => {
+    const saved = sessionStorage.getItem('elitc_chat_session_id');
+    if (saved) return saved;
+    const newId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+    sessionStorage.setItem('elitc_chat_session_id', newId);
+    return newId;
+  });
 
   const [suggestedReplies, setSuggestedReplies] = useState<string[]>([
     "For Myself",
@@ -97,6 +106,7 @@ export function useChatController() {
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    dbService.saveChatLog({ session_id: sessionId, role: 'user', content: messageText });
 
     if (messageText.toLowerCase() === "/admin") {
       setMessages(prev => [...prev, {
@@ -130,6 +140,7 @@ export function useChatController() {
         setSuggestedReplies(responseData.suggestedReplies);
         setIsLoading(false);
         setConnectionStatus('connected');
+        dbService.saveChatLog({ session_id: sessionId, role: 'assistant', content: responseData.content || '' });
       }, 400);
       return;
     }
@@ -152,6 +163,7 @@ export function useChatController() {
         setSuggestedReplies(responseData.suggestedReplies);
         setIsLoading(false);
         setConnectionStatus('connected');
+        dbService.saveChatLog({ session_id: sessionId, role: 'assistant', content: responseData.content || '' });
       }, 400);
       return;
     }
@@ -169,6 +181,25 @@ export function useChatController() {
     }, 25000);
 
     try {
+      // Perform client-side RAG search
+      const matchedCourses = retrieveCourses(messageText, dbCourses, 4);
+      let dynamicInstruction = systemInstruction;
+
+      if (matchedCourses.length > 0) {
+        const courseContext = matchedCourses.map(c => `
+- Course Code/ID: ${c.id}
+  Title: ${c.title}
+  Category: ${c.category}
+  Duration: ${c.duration}
+  Synopsis: ${c.synopsis || 'N/A'}
+  Target Audience: ${c.targetAudience?.join(', ') || 'N/A'}
+  URL: ${c.url || 'N/A'}
+`).join('\n');
+
+        const baseInstruction = systemInstruction || `You are the ELITC Assistant, an expert training consultant for the Electronics Industries Training Centre.`;
+        dynamicInstruction = `${baseInstruction.trim()}\n\n[RELEVANT COURSE CATALOG INFORMATION]\nThe user is asking about or might benefit from the following specific courses in our catalog. Use this verified data to answer accurately (including course codes, duration, target audience, and URLs if asked):\n${courseContext}\nDo NOT hallucinate or guess any course details not provided here.`;
+      }
+
       const history = messages.map(m => ({
         role: m.role === 'user' ? 'user' as const : 'model' as const,
         parts: [{ text: m.content }]
@@ -177,7 +208,7 @@ export function useChatController() {
       const assistantMessageId = (Date.now() + 1).toString();
       let hasAddedAssistant = false;
 
-      const { content: aiResponse, isError } = await chatWithAI(messageText, history, systemInstruction, (chunk) => {
+      const { content: aiResponse, isError } = await chatWithAI(messageText, history, dynamicInstruction, (chunk) => {
         clearTimeout(timeoutId);
         
         if (!hasAddedAssistant && chunk.trim()) {
@@ -196,16 +227,18 @@ export function useChatController() {
             m.id === assistantMessageId ? { ...m, content: chunk } : m
           ));
         }
-      });
+      }, sessionId);
 
       clearTimeout(timeoutId);
 
       // Finalize message
-      let courses: Course[] | undefined = undefined;
-      const mentionedCategoryKey = detectCategory(aiResponse);
-      if (mentionedCategoryKey) {
-        const category = CATEGORY_MAP[mentionedCategoryKey];
-        courses = dbCourses.filter(c => c.category === category);
+      let carouselCourses: Course[] | undefined = matchedCourses.length > 0 ? matchedCourses : undefined;
+      if (!carouselCourses) {
+        const mentionedCategoryKey = detectCategory(aiResponse);
+        if (mentionedCategoryKey) {
+          const category = CATEGORY_MAP[mentionedCategoryKey];
+          carouselCourses = dbCourses.filter(c => c.category === category);
+        }
       }
 
       setMessages(prev => {
@@ -217,7 +250,7 @@ export function useChatController() {
           timestamp: Date.now(),
           isComplete: true,
           isError,
-          courses
+          courses: carouselCourses
         } as Message;
 
         if (!assistantExists) {
@@ -225,6 +258,8 @@ export function useChatController() {
         }
         return prev.map(m => m.id === assistantMessageId ? finalizedMsg : m);
       });
+
+      dbService.saveChatLog({ session_id: sessionId, role: 'assistant', content: aiResponse });
       
       const followUps = getSuggestedFollowUps(aiResponse, isError);
       const contextual = getContextualReplies(aiResponse);
@@ -232,6 +267,14 @@ export function useChatController() {
     } catch (error) {
       console.error("Chat Error:", error);
       setConnectionStatus('error');
+      
+      // Log the error to our SQLite database
+      dbService.saveErrorLog({
+        session_id: sessionId,
+        error_message: error instanceof Error ? error.message : String(error),
+        stack_trace: error instanceof Error ? error.stack : undefined,
+        component: "useChatController.handleSend"
+      });
     } finally {
       setIsLoading(false);
     }

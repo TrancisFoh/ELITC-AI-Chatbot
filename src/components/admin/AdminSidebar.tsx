@@ -1,9 +1,9 @@
 import React from 'react';
-import { Database, Settings, Zap, LogOut } from 'lucide-react';
+import { Database, Settings, Zap, LogOut, MessageSquare, AlertOctagon } from 'lucide-react';
 
 interface AdminSidebarProps {
-  activeTab: 'courses' | 'config' | 'system';
-  setActiveTab: (tab: 'courses' | 'config' | 'system') => void;
+  activeTab: 'courses' | 'config' | 'system' | 'chats' | 'errors';
+  setActiveTab: (tab: 'courses' | 'config' | 'system' | 'chats' | 'errors') => void;
   handleLogout: () => void;
 }
 
@@ -43,6 +43,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeTab, setActive
         >
           <Zap className="w-5 h-5" />
           System Tools
+        </button>
+        <button
+          onClick={() => setActiveTab('chats')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'chats' ? 'bg-elitc-gold/10 text-elitc-gold font-semibold shadow-sm' : 'text-zinc-500 hover:bg-zinc-50'}`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          Chat History
+        </button>
+        <button
+          onClick={() => setActiveTab('errors')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'errors' ? 'bg-elitc-gold/10 text-elitc-gold font-semibold shadow-sm' : 'text-zinc-500 hover:bg-zinc-50'}`}
+        >
+          <AlertOctagon className="w-5 h-5" />
+          Error Logs
         </button>
       </nav>
 
