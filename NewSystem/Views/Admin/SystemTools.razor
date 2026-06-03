@@ -4,50 +4,51 @@
 @inject IWebHostEnvironment Env
 @using System.Text.Json
 @using ELITC_AI_Chatbot.Models
+@using System.Diagnostics
 
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="p-8 bg-white rounded-3xl border border-zinc-200 shadow-sm">
         <div class="flex items-center gap-4 mb-6">
-            <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
-                <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+            <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                <i data-lucide="activity" class="w-6 h-6"></i>
             </div>
             <div>
-                <h3 class="font-bold text-zinc-900 text-lg">Initial Data Migration</h3>
-                <p class="text-sm text-zinc-500">Seed your SQLite database with the built-in course catalog and default bot instructions.</p>
+                <h3 class="font-bold text-zinc-900 text-lg">System Health & Metrics</h3>
+                <p class="text-sm text-zinc-500">Live statistics and API usage.</p>
             </div>
         </div>
 
-        <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-100 mb-8">
-            <p class="text-xs text-amber-800 leading-relaxed">
-                <strong>Warning:</strong> This will attempt to merge and update existing records. It is recommended to perform this only once during setup or when the catalog needs a full reset from the code defaults.
-            </p>
-        </div>
-
-        <button @onclick="MigrateData" disabled="@migrationLoading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-zinc-800 hover:shadow-xl transition-all disabled:opacity-50 ring-offset-2 focus:ring-2 focus:ring-elitc-gold/50 cursor-pointer">
-            @if (migrationLoading)
-            {
-                <i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-elitc-gold"></i>
-                <span class="animate-pulse">Processing Batch...</span>
-            }
-            else if (migrationStatus == "success")
-            {
-                <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-400"></i>
-                <span>Synchronization Complete</span>
-            }
-            else
-            {
-                <i data-lucide="zap" class="w-6 h-6 text-elitc-gold fill-elitc-gold"></i>
-                <span>Synchronize Database</span>
-            }
-        </button>
-
-        @if (migrationStatus != "idle")
-        {
-            <div class="mt-4 p-4 rounded-xl flex items-center gap-3 text-sm @(migrationStatus == "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100")">
-                <i data-lucide="@(migrationStatus == "success" ? "check-circle-2" : "alert-circle")" class="w-4 h-4"></i>
-                @migrationMessage
+        <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Uptime</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-zinc-400"></i>
+                    <p class="text-lg font-bold text-zinc-900">@uptime</p>
+                </div>
             </div>
-        }
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Database Size</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-zinc-400"></i>
+                    <p class="text-lg font-bold text-zinc-900">@dbSizeMb MB</p>
+                </div>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Errors (24h)</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 @(recentErrors > 0 ? "text-rose-500" : "text-emerald-500")"></i>
+                    <p class="text-lg font-bold text-zinc-900">@recentErrors</p>
+                </div>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Total Tokens</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="cpu" class="w-4 h-4 text-purple-500"></i>
+                    <p class="text-lg font-bold text-zinc-900">@totalTokens.ToString("N0")</p>
+                </div>
+                <p class="text-xs text-zinc-500 mt-1">Est. Cost: $@estimatedCost.ToString("F4")</p>
+            </div>
+        </div>
     </div>
 
     <div class="p-8 bg-white rounded-3xl border border-zinc-200 shadow-sm">
@@ -83,13 +84,18 @@
 @code {
     private int courseCount = 0;
     private int configCount = 0;
-    private bool migrationLoading = false;
-    private string migrationStatus = "idle";
-    private string migrationMessage = "";
+    
+    private string uptime = "0m";
+    private string dbSizeMb = "0.00";
+    private int recentErrors = 0;
+    private long totalTokens = 0;
+    private double estimatedCost = 0.0;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadStats();
+        CalculateUptime();
+        CalculateDbSize();
     }
 
     private async Task LoadStats()
@@ -98,72 +104,62 @@
         var configs = await DbService.GetAllConfigsAsync();
         courseCount = courses.Count;
         configCount = configs.Count;
+
+        // Errors in last 24h
+        var errorLogs = await DbService.GetErrorLogsAsync();
+        var oneDayAgo = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        recentErrors = errorLogs.Count(e => e.Timestamp >= oneDayAgo);
+
+        // Tokens
+        var tokensStr = await DbService.GetConfigValueAsync("TOTAL_TOKENS_USED", "0");
+        if (long.TryParse(tokensStr, out var tokens))
+        {
+            totalTokens = tokens;
+        }
+        
+        // Est Cost: Gemini 1.5 Flash is roughly $0.075 per 1 million tokens (blended input/output)
+        estimatedCost = (totalTokens / 1_000_000.0) * 0.075;
     }
 
-    private async Task MigrateData()
+    private void CalculateUptime()
     {
-        migrationLoading = true;
-        migrationStatus = "idle";
-        
-        try 
+        try
         {
-            var jsonPath = System.IO.Path.Combine(Env.ContentRootPath, "courses.json");
-            if (System.IO.File.Exists(jsonPath))
-            {
-                var json = await System.IO.File.ReadAllTextAsync(jsonPath);
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var importedCourses = JsonSerializer.Deserialize<List<CourseImportDto>>(json, options);
-                
-                if (importedCourses != null)
-                {
-                    foreach(var dto in importedCourses)
-                    {
-                        var course = new Course
-                        {
-                            Id = string.IsNullOrEmpty(dto.Id) ? Guid.NewGuid().ToString() : dto.Id,
-                            Title = dto.Title ?? "Untitled Course",
-                            Category = dto.Category ?? "Uncategorized",
-                            Level = dto.Level ?? "Beginner",
-                            Description = dto.Synopsis ?? "No description available.",
-                            Prerequisites = dto.TargetAudience != null ? string.Join(", ", dto.TargetAudience) : "",
-                            Topics = dto.Objectives != null ? string.Join(", ", dto.Objectives) : "",
-                            Certification = "",
-                            Roles = "",
-                            Skills = ""
-                        };
+            var process = Process.GetCurrentProcess();
+            var duration = DateTime.Now - process.StartTime;
+            
+            if (duration.TotalDays >= 1)
+                uptime = $"{(int)duration.TotalDays}d {duration.Hours}h";
+            else if (duration.TotalHours >= 1)
+                uptime = $"{(int)duration.TotalHours}h {duration.Minutes}m";
+            else
+                uptime = $"{(int)duration.TotalMinutes}m";
+        }
+        catch
+        {
+            uptime = "N/A";
+        }
+    }
 
-                        await DbService.SaveCourseAsync(course);
-                    }
-                }
+    private void CalculateDbSize()
+    {
+        try
+        {
+            var dbPath = System.IO.Path.Combine(Env.ContentRootPath, "Data", "app.db");
+            if (System.IO.File.Exists(dbPath))
+            {
+                var fileInfo = new System.IO.FileInfo(dbPath);
+                dbSizeMb = (fileInfo.Length / 1024.0 / 1024.0).ToString("0.00");
             }
-            await LoadStats();
-            migrationStatus = "success";
-            migrationMessage = "Migration successful! Courses loaded.";
         }
-        catch (Exception ex)
+        catch
         {
-            migrationStatus = "error";
-            migrationMessage = $"Failed: {ex.Message}";
-        }
-        finally
-        {
-            migrationLoading = false;
+            dbSizeMb = "N/A";
         }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("chatInterop.initIcons");
-    }
-
-    private class CourseImportDto
-    {
-        public string? Id { get; set; }
-        public string? Title { get; set; }
-        public string? Synopsis { get; set; }
-        public string? Category { get; set; }
-        public string? Level { get; set; }
-        public List<string>? TargetAudience { get; set; }
-        public List<string>? Objectives { get; set; }
     }
 }

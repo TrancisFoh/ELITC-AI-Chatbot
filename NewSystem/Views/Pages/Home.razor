@@ -118,7 +118,12 @@
         isOpen = !isOpen;
         if (isOpen && !messages.Any())
         {
-            // Optional: send a greeting message automatically?
+            messages.Add(new ChatLog
+            {
+                Role = "model",
+                Content = "Hey there! 👋 I'm your **ELITC Assistant**, here to help you find the perfect training course for your career goals. Whether you're looking into **WSQ certifications**, **IPC training**, or **AI & digital skills** — I've got you covered!\n\nWhat can I help you with today? 🎯",
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
         }
     }
 

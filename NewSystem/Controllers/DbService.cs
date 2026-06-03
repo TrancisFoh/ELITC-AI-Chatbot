@@ -75,6 +75,29 @@ public class DbService(ApplicationDbContext context)
         await context.SaveChangesAsync();
     }
 
+    public async Task IncrementTotalTokensAsync(int tokens)
+    {
+        var config = await context.Configs.FirstOrDefaultAsync(c => c.Key == "TOTAL_TOKENS_USED");
+        if (config == null)
+        {
+            config = new Config { Id = Guid.NewGuid().ToString(), Key = "TOTAL_TOKENS_USED", Value = tokens.ToString() };
+            context.Configs.Add(config);
+        }
+        else
+        {
+            if (long.TryParse(config.Value, out long currentTokens))
+            {
+                config.Value = (currentTokens + tokens).ToString();
+            }
+            else
+            {
+                config.Value = tokens.ToString();
+            }
+            context.Entry(config).State = EntityState.Modified;
+        }
+        await context.SaveChangesAsync();
+    }
+
     // --- Logs ---
     public async Task SaveChatLogAsync(ChatLog log)
     {

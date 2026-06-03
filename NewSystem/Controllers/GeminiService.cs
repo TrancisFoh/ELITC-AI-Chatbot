@@ -161,6 +161,16 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
                     yield return fullResponse;
                 }
             }
+
+            if (chunkDoc.TryGetProperty("usageMetadata", out var usage) && 
+                usage.TryGetProperty("totalTokenCount", out var totalTokensElement))
+            {
+                if (totalTokensElement.ValueKind == JsonValueKind.Number)
+                {
+                    int tokens = totalTokensElement.GetInt32();
+                    await _dbService.IncrementTotalTokensAsync(tokens);
+                }
+            }
         }
 
         // 4. Log the interaction to DB
