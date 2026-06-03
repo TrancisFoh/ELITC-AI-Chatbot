@@ -1,0 +1,169 @@
+@using ELITC_AI_Chatbot.Controllers
+@inject DbService DbService
+@inject IJSRuntime JS
+@inject IWebHostEnvironment Env
+@using System.Text.Json
+@using ELITC_AI_Chatbot.Models
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="p-8 bg-white rounded-3xl border border-zinc-200 shadow-sm">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+                <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-zinc-900 text-lg">Initial Data Migration</h3>
+                <p class="text-sm text-zinc-500">Seed your SQLite database with the built-in course catalog and default bot instructions.</p>
+            </div>
+        </div>
+
+        <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-100 mb-8">
+            <p class="text-xs text-amber-800 leading-relaxed">
+                <strong>Warning:</strong> This will attempt to merge and update existing records. It is recommended to perform this only once during setup or when the catalog needs a full reset from the code defaults.
+            </p>
+        </div>
+
+        <button @onclick="MigrateData" disabled="@migrationLoading" class="w-full bg-zinc-900 text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-zinc-800 hover:shadow-xl transition-all disabled:opacity-50 ring-offset-2 focus:ring-2 focus:ring-elitc-gold/50 cursor-pointer">
+            @if (migrationLoading)
+            {
+                <i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-elitc-gold"></i>
+                <span class="animate-pulse">Processing Batch...</span>
+            }
+            else if (migrationStatus == "success")
+            {
+                <i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-400"></i>
+                <span>Synchronization Complete</span>
+            }
+            else
+            {
+                <i data-lucide="zap" class="w-6 h-6 text-elitc-gold fill-elitc-gold"></i>
+                <span>Synchronize Database</span>
+            }
+        </button>
+
+        @if (migrationStatus != "idle")
+        {
+            <div class="mt-4 p-4 rounded-xl flex items-center gap-3 text-sm @(migrationStatus == "success" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-rose-50 text-rose-700 border border-rose-100")">
+                <i data-lucide="@(migrationStatus == "success" ? "check-circle-2" : "alert-circle")" class="w-4 h-4"></i>
+                @migrationMessage
+            </div>
+        }
+    </div>
+
+    <div class="p-8 bg-white rounded-3xl border border-zinc-200 shadow-sm">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
+                <i data-lucide="database" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-zinc-900 text-lg">Database Health</h3>
+                <p class="text-sm text-zinc-500">Current active collections and record counts.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Courses</p>
+                    <p class="text-2xl font-bold text-zinc-900">@courseCount</p>
+                </div>
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Configs</p>
+                    <p class="text-2xl font-bold text-zinc-900">@configCount</p>
+                </div>
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int courseCount = 0;
+    private int configCount = 0;
+    private bool migrationLoading = false;
+    private string migrationStatus = "idle";
+    private string migrationMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+    }
+
+    private async Task LoadStats()
+    {
+        var courses = await DbService.GetAllCoursesAsync();
+        var configs = await DbService.GetAllConfigsAsync();
+        courseCount = courses.Count;
+        configCount = configs.Count;
+    }
+
+    private async Task MigrateData()
+    {
+        migrationLoading = true;
+        migrationStatus = "idle";
+        
+        try 
+        {
+            var jsonPath = System.IO.Path.Combine(Env.ContentRootPath, "courses.json");
+            if (System.IO.File.Exists(jsonPath))
+            {
+                var json = await System.IO.File.ReadAllTextAsync(jsonPath);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var importedCourses = JsonSerializer.Deserialize<List<CourseImportDto>>(json, options);
+                
+                if (importedCourses != null)
+                {
+                    foreach(var dto in importedCourses)
+                    {
+                        var course = new Course
+                        {
+                            Id = string.IsNullOrEmpty(dto.Id) ? Guid.NewGuid().ToString() : dto.Id,
+                            Title = dto.Title ?? "Untitled Course",
+                            Category = dto.Category ?? "Uncategorized",
+                            Level = dto.Level ?? "Beginner",
+                            Description = dto.Synopsis ?? "No description available.",
+                            Prerequisites = dto.TargetAudience != null ? string.Join(", ", dto.TargetAudience) : "",
+                            Topics = dto.Objectives != null ? string.Join(", ", dto.Objectives) : "",
+                            Certification = "",
+                            Roles = "",
+                            Skills = ""
+                        };
+
+                        await DbService.SaveCourseAsync(course);
+                    }
+                }
+            }
+            await LoadStats();
+            migrationStatus = "success";
+            migrationMessage = "Migration successful! Courses loaded.";
+        }
+        catch (Exception ex)
+        {
+            migrationStatus = "error";
+            migrationMessage = $"Failed: {ex.Message}";
+        }
+        finally
+        {
+            migrationLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    private class CourseImportDto
+    {
+        public string? Id { get; set; }
+        public string? Title { get; set; }
+        public string? Synopsis { get; set; }
+        public string? Category { get; set; }
+        public string? Level { get; set; }
+        public List<string>? TargetAudience { get; set; }
+        public List<string>? Objectives { get; set; }
+    }
+}

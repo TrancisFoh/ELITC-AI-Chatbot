@@ -1,0 +1,236 @@
+@using Microsoft.AspNetCore.Identity
+@using ELITC_AI_Chatbot.Models.Data
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<ApplicationUser> AppUserManager
+@inject IJSRuntime JS
+
+<div class="space-y-6">
+    <div class="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-zinc-900 text-lg">User Management</h3>
+                    <p class="text-xs text-zinc-500 font-medium">Manage administrators with access to this panel.</p>
+                </div>
+            </div>
+
+            <button @onclick="() => showAddUserModal = true"
+                class="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Add Admin
+            </button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm text-zinc-600 min-w-[600px]">
+                <thead class="bg-zinc-50/80 text-xs uppercase font-bold text-zinc-400 border-b border-zinc-100">
+                    <tr>
+                        <th class="px-6 py-4">User Email / Username</th>
+                        <th class="px-6 py-4">Roles</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 bg-white">
+                    @if (users == null)
+                    {
+                        <tr>
+                            <td colspan="3" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center gap-3 text-zinc-400">
+                                    <i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-elitc-gold"></i>
+                                    <span class="text-sm font-medium">Loading users...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else if (!users.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="px-6 py-12 text-center">
+                                <span class="text-sm font-bold text-zinc-700">No users found</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var user in users)
+                        {
+                            <tr class="hover:bg-zinc-50/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-medium text-zinc-900">@user.Email</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                        class="px-2.5 py-1 bg-elitc-gold/10 text-elitc-gold rounded-full text-xs font-semibold border border-elitc-gold/20">
+                                        Admin
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <button @onclick="() => ConfirmDelete(user)"
+                                        class="p-2 text-zinc-400 hover:text-rose-500 bg-white hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 rounded-lg transition-all"
+                                        title="Delete User">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (showAddUserModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @onclick="() => showAddUserModal = false"></div>
+        <div class="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            <div class="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+                <h2 class="text-xl font-bold text-zinc-900">Add New Admin</h2>
+                <button @onclick="() => showAddUserModal = false"
+                    class="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4"></i> @errorMessage
+                    </div>
+                }
+
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Email Address</label>
+                    <input type="email" @bind="newUserEmail"
+                        class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm"
+                        placeholder="admin@example.com" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Password</label>
+                    <input type="password" @bind="newUserPassword"
+                        class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm"
+                        placeholder="••••••••" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] text-zinc-400">Password must have at least 6 characters, one non-alphanumeric
+                        character, one lowercase, and one uppercase letter.</label>
+                </div>
+            </div>
+
+            <div class="p-6 bg-zinc-50 border-t border-zinc-100 flex items-center justify-end gap-3">
+                <button @onclick="() => showAddUserModal = false"
+                    class="px-6 py-2.5 text-sm font-semibold text-zinc-500 hover:text-zinc-900 transition-colors">Cancel</button>
+                <button @onclick="CreateUser" disabled="@isSaving"
+                    class="bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-zinc-900/20 transition-all disabled:opacity-50">
+                    @(isSaving ? "Creating..." : "Create Admin")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (userToDelete != null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @onclick="() => userToDelete = null"></div>
+        <div class="relative w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            <div class="p-8 pb-6 flex flex-col items-center text-center">
+                <div class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mb-4">
+                    <span class="text-3xl">🥺</span>
+                </div>
+                <h2 class="text-xl font-bold text-zinc-900 mb-2">Delete User?</h2>
+                <p class="text-sm text-zinc-500">Are you sure you want to delete <strong>@userToDelete.Email</strong>? This
+                    action cannot be undone.</p>
+            </div>
+            <div class="p-6 bg-zinc-50 border-t border-zinc-100 flex items-center justify-end gap-3">
+                <button @onclick="() => userToDelete = null"
+                    class="px-6 py-2.5 text-sm font-semibold text-zinc-500 hover:text-zinc-900 transition-colors">Cancel</button>
+                <button @onclick="DeleteUser"
+                    class="bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-rose-500/20 transition-all">Yes,
+                    Delete</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ApplicationUser>? users;
+    private bool showAddUserModal = false;
+    private bool isSaving = false;
+
+    private string newUserEmail = "";
+    private string newUserPassword = "";
+    private string errorMessage = "";
+
+    private ApplicationUser? userToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        // For Blazor Server, we should materialize the list since DbContext scope might be disposed
+        users = await AppUserManager.Users.ToListAsync();
+        StateHasChanged();
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    private async Task CreateUser()
+    {
+        errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(newUserEmail) || string.IsNullOrWhiteSpace(newUserPassword))
+        {
+            errorMessage = "Email and password are required.";
+            return;
+        }
+
+        isSaving = true;
+        var user = new ApplicationUser { UserName = newUserEmail, Email = newUserEmail, EmailConfirmed = true };
+        var result = await AppUserManager.CreateAsync(user, newUserPassword);
+
+        if (result.Succeeded)
+        {
+            await AppUserManager.AddToRoleAsync(user, "Admin");
+            showAddUserModal = false;
+            newUserEmail = "";
+            newUserPassword = "";
+            await LoadUsers();
+        }
+        else
+        {
+            errorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+        }
+        isSaving = false;
+        StateHasChanged();
+    }
+
+    private void ConfirmDelete(ApplicationUser user)
+    {
+        userToDelete = user;
+    }
+
+    private async Task DeleteUser()
+    {
+        if (userToDelete != null)
+        {
+            await AppUserManager.DeleteAsync(userToDelete);
+            userToDelete = null;
+            await LoadUsers();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("chatInterop.initIcons");
+        }
+    }
+}

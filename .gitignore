@@ -5,3 +5,18 @@ dist/
 .DS_Store
 *.log
 .vs/
+.vite/
+.vscode/
+
+# .NET
+bin/
+obj/
+
+# Scratch/test files
+scratch.js
+test-sql.js
+test_gemini.json
+
+# Database files
+*.sqlite
+*.db

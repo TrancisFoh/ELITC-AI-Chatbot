@@ -1,0 +1,55 @@
+@using Markdig
+@using ELITC_AI_Chatbot.Models
+
+<div class="flex @(IsUser ? "justify-end" : "justify-start") mb-6">
+    <div class="flex gap-3 max-w-[85%] @(IsUser ? "flex-row-reverse" : "flex-row")">
+        @if (!IsUser)
+        {
+            <div class="flex-shrink-0 mt-1">
+                <div class="w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center shadow-sm">
+                    <span class="text-elitc-gold text-xs font-bold">EA</span>
+                </div>
+            </div>
+        }
+
+        <div class="flex flex-col @(IsUser ? "items-end" : "items-start")">
+            <div class="px-5 py-3.5 rounded-2xl shadow-sm @(IsUser ? "bg-zinc-900 text-white rounded-tr-sm" : "bg-white border border-zinc-100 text-zinc-800 rounded-tl-sm")">
+                @if (IsLoading && string.IsNullOrEmpty(Content))
+                {
+                    <div class="flex items-center gap-1.5 h-6 px-2">
+                        <div class="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-800 prose-pre:text-zinc-100 @(IsUser ? "prose-invert prose-p:text-white" : "")">
+                        @((MarkupString)Markdown.ToHtml(Content ?? "", pipeline))
+                    </div>
+                }
+            </div>
+
+            @if (!IsUser && RelatedCourses != null && RelatedCourses.Any())
+            {
+                <div class="mt-2 w-full max-w-[320px]">
+                    <CourseCarousel Courses="@RelatedCourses" />
+                </div>
+            }
+            
+            <span class="text-[10px] font-medium text-zinc-400 mt-1.5 px-1 uppercase tracking-wider">
+                @(IsUser ? "You" : "Assistant") • @Timestamp.ToString("h:mm tt")
+            </span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool IsUser { get; set; }
+    [Parameter] public string Content { get; set; } = "";
+    [Parameter] public DateTime Timestamp { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public List<Course>? RelatedCourses { get; set; }
+
+    private static MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+}

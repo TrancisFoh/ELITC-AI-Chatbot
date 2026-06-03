@@ -1,0 +1,66 @@
+<div class="p-4 bg-white/95 backdrop-blur-xl border-t border-zinc-100/80 rounded-b-[32px]">
+    @inject IJSRuntime JSRuntime
+    <div class="relative max-w-4xl mx-auto group">
+        <!-- Subtle Glow behind input on focus -->
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-elitc-gold/30 to-zinc-900/20 rounded-[28px] blur-md opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+        
+        <form @onsubmit="SubmitForm" class="relative flex items-end bg-white border border-zinc-200/80 rounded-[24px] pl-5 pr-2 py-2 shadow-sm transition-all z-10">
+            
+            <textarea 
+                @bind="InputValue" 
+                @bind:event="oninput"
+                @onkeydown="HandleKeyDown"
+                id="chat-input-textarea"
+                placeholder="Ask about ELITC courses..."
+                class="w-full bg-transparent border-0 outline-none focus:outline-none focus:ring-0 resize-none max-h-32 min-h-[28px] py-2.5 text-[15px] text-zinc-800 placeholder:text-zinc-400 font-medium custom-scrollbar leading-relaxed"
+                rows="1"
+                disabled="@IsLoading">
+            </textarea>
+            
+            <button 
+                type="submit" 
+                disabled="@(string.IsNullOrWhiteSpace(InputValue) || IsLoading)"
+                class="flex-shrink-0 w-11 h-11 mb-0.5 ml-3 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 @(string.IsNullOrWhiteSpace(InputValue) || IsLoading ? "bg-zinc-100 text-zinc-400 cursor-not-allowed" : "bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md cursor-pointer")">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 @(string.IsNullOrWhiteSpace(InputValue) || IsLoading ? "" : "text-elitc-gold translate-x-px -translate-y-px") transition-transform"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+        </form>
+    </div>
+    
+    <div class="text-center mt-3.5">
+        <p class="text-[10px] text-zinc-400 font-semibold tracking-wide">ELITC Assistant can make mistakes. Consider verifying important information.</p>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string InputValue { get; set; } = "";
+    [Parameter] public EventCallback<string> InputValueChanged { get; set; }
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("chatInputInit");
+        }
+    }
+
+    private async Task SubmitForm()
+    {
+        if (string.IsNullOrWhiteSpace(InputValue) || IsLoading) return;
+        
+        var msg = InputValue;
+        InputValue = "";
+        await InputValueChanged.InvokeAsync(InputValue);
+        StateHasChanged();
+        await OnSubmit.InvokeAsync(msg);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SubmitForm();
+        }
+    }
+}
