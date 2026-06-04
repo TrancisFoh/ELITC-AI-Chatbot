@@ -20,8 +20,8 @@
             <button 
                 type="submit" 
                 disabled="@(string.IsNullOrWhiteSpace(InputValue) || IsLoading)"
-                class="flex-shrink-0 w-11 h-11 mb-0.5 ml-3 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 @(string.IsNullOrWhiteSpace(InputValue) || IsLoading ? "bg-zinc-100 text-zinc-400 cursor-not-allowed" : "bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md cursor-pointer")">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 @(string.IsNullOrWhiteSpace(InputValue) || IsLoading ? "" : "text-elitc-gold translate-x-px -translate-y-px") transition-transform"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                class="flex-shrink-0 w-11 h-11 mb-0.5 ml-3 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-95 @(string.IsNullOrWhiteSpace(InputValue) || IsLoading ? "bg-[#DBAC35]/50 text-white cursor-not-allowed" : "bg-[#DBAC35] text-white hover:bg-[#c69a2f] hover:shadow-md cursor-pointer")">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 @(string.IsNullOrWhiteSpace(InputValue) || IsLoading ? "" : "translate-x-px -translate-y-px") transition-transform"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
         </form>
     </div>

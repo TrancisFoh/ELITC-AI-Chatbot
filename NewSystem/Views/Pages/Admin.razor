@@ -47,6 +47,10 @@
                 <i data-lucide="users" class="w-4 h-4 @(activeTab == "users" ? "text-elitc-gold" : "")"></i>
                 User Management
             </button>
+            <button @onclick="@(() => activeTab = "audit")" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm @(activeTab == "audit" ? "bg-white text-zinc-900 shadow-md" : "hover:bg-zinc-900 hover:text-white")">
+                <i data-lucide="clipboard-list" class="w-4 h-4 @(activeTab == "audit" ? "text-elitc-gold" : "")"></i>
+                Audit Logs
+            </button>
         </nav>
 
         <div class="mt-auto pt-6 border-t border-zinc-900">
@@ -91,6 +95,7 @@
                   activeTab == "system" ? "System Control" : 
                   activeTab == "chats" ? "Chat Audit Logs" : 
                   activeTab == "errors" ? "System Error Logs" : 
+                  activeTab == "audit" ? "Audit Logs" : 
                   "User Management")
             </h1>
             <p class="text-zinc-500 text-base mt-1">Manage the core intelligence and data assets of your ELITC Assistant.</p>
@@ -119,6 +124,10 @@
         else if (activeTab == "users")
         {
             <UserManager />
+        }
+        else if (activeTab == "audit")
+        {
+            <AuditLogs />
         }
     </main>
 </div>

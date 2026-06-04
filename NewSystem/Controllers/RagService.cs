@@ -38,10 +38,9 @@ public class RagService
             }
 
             var titleLower = course.Title.ToLowerInvariant();
-            var synopsisLower = course.Description.ToLowerInvariant();
+            var synopsisLower = course.Synopsis.ToLowerInvariant();
             var categoryLower = course.Category.ToLowerInvariant();
-            // In the C# model, roles/skills map to target audience roughly
-            var audienceStr = (course.Roles + " " + course.Skills).ToLowerInvariant();
+            var audienceStr = course.TargetAudience.ToLowerInvariant();
 
             foreach (var token in tokens)
             {

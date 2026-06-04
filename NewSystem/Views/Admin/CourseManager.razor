@@ -45,11 +45,13 @@
                 {
                     <tr class="hover:bg-zinc-50/50 transition-colors">
                         <td class="px-4 py-4 font-medium text-zinc-900">@course.Title</td>
-                        <td class="px-4 py-4"><span class="px-2.5 py-1 bg-elitc-gold/10 text-elitc-gold rounded-full text-xs font-semibold">@course.Category</span></td>
-                        <td class="px-4 py-4">@course.Level</td>
+                        <td class="px-4 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold @GetCategoryColor(course.Category)">@course.Category</span></td>
+                        <td class="px-4 py-4"><span class="px-2.5 py-1 rounded-full text-xs font-medium @GetLevelColor(course.Level)">@course.Level</span></td>
                         <td class="px-4 py-4 text-right">
-                            <button @onclick="() => EditCourse(course)" class="p-2 text-zinc-400 hover:text-blue-500 bg-white hover:bg-blue-50 border border-zinc-200 hover:border-blue-200 rounded-lg transition-all mx-1"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                            <button @onclick="() => ConfirmDelete(course.Id)" class="p-2 text-zinc-400 hover:text-rose-500 bg-white hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 rounded-lg transition-all mx-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            <div class="flex items-center justify-end gap-2">
+                                <button @onclick="() => EditCourse(course)" class="p-2 text-zinc-400 hover:text-blue-500 bg-white hover:bg-blue-50 border border-zinc-200 hover:border-blue-200 rounded-lg transition-all"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                <button @onclick="() => ConfirmDelete(course.Id)" class="p-2 text-zinc-400 hover:text-rose-500 bg-white hover:bg-rose-50 border border-zinc-200 hover:border-rose-200 rounded-lg transition-all"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -110,9 +112,9 @@
     {
         editingCourse = new Course 
         { 
-            Id = course.Id, Title = course.Title, Description = course.Description, Category = course.Category, 
-            Level = course.Level, Topics = course.Topics, Prerequisites = course.Prerequisites, 
-            Certification = course.Certification, Roles = course.Roles, Skills = course.Skills 
+            Id = course.Id, Title = course.Title, Synopsis = course.Synopsis, Category = course.Category, 
+            Level = course.Level, Duration = course.Duration, TargetAudience = course.TargetAudience, 
+            Url = course.Url 
         };
         isEditing = true;
     }
@@ -168,12 +170,10 @@
                             Title = dto.Title ?? "Untitled Course",
                             Category = dto.Category ?? "Uncategorized",
                             Level = dto.Level ?? "Beginner",
-                            Description = dto.Synopsis ?? "No description available.",
-                            Prerequisites = dto.TargetAudience != null ? string.Join(", ", dto.TargetAudience) : "",
-                            Topics = dto.Objectives != null ? string.Join(", ", dto.Objectives) : "",
-                            Certification = "",
-                            Roles = "",
-                            Skills = ""
+                            Synopsis = dto.Synopsis ?? "No synopsis available.",
+                            Duration = dto.Duration ?? "",
+                            TargetAudience = dto.TargetAudience != null ? string.Join(", ", dto.TargetAudience) : "",
+                            Url = dto.Url ?? ""
                         };
 
                         await DbService.SaveCourseAsync(course);
@@ -204,7 +204,33 @@
         public string? Synopsis { get; set; }
         public string? Category { get; set; }
         public string? Level { get; set; }
+        public string? Duration { get; set; }
+        public string? Url { get; set; }
         public List<string>? TargetAudience { get; set; }
-        public List<string>? Objectives { get; set; }
+    }
+
+    private string GetCategoryColor(string? category)
+    {
+        return category?.ToLower() switch
+        {
+            "wsq" => "bg-blue-50 text-blue-700 border border-blue-200",
+            "skills improvement" => "bg-emerald-50 text-emerald-700 border border-emerald-200",
+            "certification" => "bg-purple-50 text-purple-700 border border-purple-200",
+            "ai & digital" => "bg-indigo-50 text-indigo-700 border border-indigo-200",
+            "ipc" => "bg-orange-50 text-orange-700 border border-orange-200",
+            "foreign workers" => "bg-cyan-50 text-cyan-700 border border-cyan-200",
+            _ => "bg-zinc-50 text-zinc-700 border border-zinc-200"
+        };
+    }
+
+    private string GetLevelColor(string? level)
+    {
+        return level?.ToLower() switch
+        {
+            "beginner" => "bg-teal-50 text-teal-700 border border-teal-200",
+            "intermediate" => "bg-amber-50 text-amber-700 border border-amber-200",
+            "professional" or "advanced" => "bg-rose-50 text-rose-700 border border-rose-200",
+            _ => "bg-zinc-50 text-zinc-600 border border-zinc-200"
+        };
     }
 }

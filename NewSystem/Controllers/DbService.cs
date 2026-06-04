@@ -2,10 +2,22 @@ using ELITC_AI_Chatbot.Models.Data;
 using ELITC_AI_Chatbot.Models;
 using Microsoft.EntityFrameworkCore;
 
+using Microsoft.AspNetCore.Components.Authorization;
+
 namespace ELITC_AI_Chatbot.Controllers;
 
-public class DbService(ApplicationDbContext context)
+public class DbService(ApplicationDbContext context, AuthenticationStateProvider authStateProvider)
 {
+    private async Task SetAuditUserAsync()
+    {
+        var authState = await authStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            context.CurrentUsername = user.Identity.Name ?? "System";
+            context.CurrentUserId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+        }
+    }
     // --- Courses ---
     public async Task<List<Course>> GetAllCoursesAsync()
     {
@@ -32,6 +44,7 @@ public class DbService(ApplicationDbContext context)
         {
             context.Entry(existing).CurrentValues.SetValues(course);
         }
+        await SetAuditUserAsync();
         await context.SaveChangesAsync();
     }
 
@@ -41,6 +54,7 @@ public class DbService(ApplicationDbContext context)
         if (course != null)
         {
             context.Courses.Remove(course);
+            await SetAuditUserAsync();
             await context.SaveChangesAsync();
         }
     }
@@ -72,6 +86,7 @@ public class DbService(ApplicationDbContext context)
         {
             context.Entry(existing).CurrentValues.SetValues(config);
         }
+        await SetAuditUserAsync();
         await context.SaveChangesAsync();
     }
 
@@ -95,6 +110,7 @@ public class DbService(ApplicationDbContext context)
             }
             context.Entry(config).State = EntityState.Modified;
         }
+        await SetAuditUserAsync();
         await context.SaveChangesAsync();
     }
 
@@ -156,5 +172,10 @@ public class DbService(ApplicationDbContext context)
     {
         context.ErrorLogs.RemoveRange(context.ErrorLogs);
         await context.SaveChangesAsync();
+    }
+
+    public async Task<List<AuditLog>> GetAuditLogsAsync()
+    {
+        return await context.AuditLogs.OrderByDescending(a => a.Timestamp).ToListAsync();
     }
 }

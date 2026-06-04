@@ -7,14 +7,12 @@ public class Course
     [Key]
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty;
+    public string Synopsis { get; set; } = string.Empty;
+    public string TargetAudience { get; set; } = string.Empty;
+    public string Duration { get; set; } = string.Empty;
     public string Level { get; set; } = string.Empty;
-    public string Topics { get; set; } = string.Empty;
-    public string Prerequisites { get; set; } = string.Empty;
-    public string Certification { get; set; } = string.Empty;
-    public string Roles { get; set; } = string.Empty;
-    public string Skills { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
 }
 
 public class Config
@@ -46,5 +44,18 @@ public class ErrorLog
     public string ErrorMessage { get; set; } = string.Empty;
     public string? StackTrace { get; set; }
     public string Component { get; set; } = string.Empty;
+    public long Timestamp { get; set; }
+}
+
+public class AuditLog
+{
+    [Key]
+    public string Id { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string EntityName { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string Changes { get; set; } = string.Empty;
     public long Timestamp { get; set; }
 }

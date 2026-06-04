@@ -25,29 +25,21 @@
                     <label class="text-sm font-semibold text-zinc-700">Level</label>
                     <input type="text" @bind="Course.Level" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
                 </div>
-                <div class="col-span-2 space-y-1">
-                    <label class="text-sm font-semibold text-zinc-700">Description</label>
-                    <textarea @bind="Course.Description" rows="4" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm"></textarea>
-                </div>
-                <div class="col-span-2 space-y-1">
-                    <label class="text-sm font-semibold text-zinc-700">Topics</label>
-                    <textarea @bind="Course.Topics" rows="3" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm"></textarea>
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Duration</label>
+                    <input type="text" @bind="Course.Duration" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
                 </div>
                 <div class="space-y-1">
-                    <label class="text-sm font-semibold text-zinc-700">Prerequisites</label>
-                    <input type="text" @bind="Course.Prerequisites" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
-                </div>
-                <div class="space-y-1">
-                    <label class="text-sm font-semibold text-zinc-700">Certification</label>
-                    <input type="text" @bind="Course.Certification" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
+                    <label class="text-sm font-semibold text-zinc-700">Target Audience</label>
+                    <input type="text" @bind="Course.TargetAudience" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
                 </div>
                 <div class="col-span-2 space-y-1">
-                    <label class="text-sm font-semibold text-zinc-700">Roles</label>
-                    <input type="text" @bind="Course.Roles" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
+                    <label class="text-sm font-semibold text-zinc-700">URL</label>
+                    <input type="text" @bind="Course.Url" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
                 </div>
                 <div class="col-span-2 space-y-1">
-                    <label class="text-sm font-semibold text-zinc-700">Skills</label>
-                    <input type="text" @bind="Course.Skills" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
+                    <label class="text-sm font-semibold text-zinc-700">Synopsis</label>
+                    <textarea @bind="Course.Synopsis" rows="4" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm"></textarea>
                 </div>
             </div>
         </div>

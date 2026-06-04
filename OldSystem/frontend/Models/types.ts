@@ -9,7 +9,7 @@ export interface Course {
   objectives?: string[];
   targetAudience?: string[];
   prerequisites?: string[];
-  price: number;
+  price?: number;
   duration: string;
   level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Professional';
   url: string;

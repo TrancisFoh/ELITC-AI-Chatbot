@@ -1,0 +1,141 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@using System.Text.Json
+@inject DbService DbService
+
+<div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-zinc-900 tracking-tight">Audit Logs</h1>
+            <p class="text-sm text-zinc-500 mt-1">Review system changes made by users.</p>
+        </div>
+    </div>
+
+    @if (Logs == null)
+    {
+        <div class="flex justify-center p-8">
+            <div class="w-8 h-8 border-4 border-elitc-gold/30 border-t-elitc-gold rounded-full animate-spin"></div>
+        </div>
+    }
+    else if (!Logs.Any())
+    {
+        <div class="bg-white rounded-2xl p-12 text-center border border-zinc-200/60 shadow-sm">
+            <div class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-zinc-400"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <h3 class="text-lg font-bold text-zinc-900">No audit logs found</h3>
+            <p class="text-zinc-500 mt-1">Changes to the database will appear here.</p>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-2xl border border-zinc-200/60 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-zinc-500 bg-zinc-50/50 uppercase tracking-wider border-b border-zinc-200/60">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 font-semibold">Timestamp</th>
+                            <th scope="col" class="px-6 py-4 font-semibold">User</th>
+                            <th scope="col" class="px-6 py-4 font-semibold">Action</th>
+                            <th scope="col" class="px-6 py-4 font-semibold">Entity</th>
+                            <th scope="col" class="px-6 py-4 font-semibold">Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-200/60">
+                        @foreach (var log in Logs)
+                        {
+                            <tr class="hover:bg-zinc-50/50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-zinc-600">
+                                    @(DateTimeOffset.FromUnixTimeMilliseconds(log.Timestamp).LocalDateTime.ToString("g"))
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="font-medium text-zinc-900">@log.Username</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @GetActionBadgeClass(log.Action)">
+                                        @log.Action
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-zinc-600">
+                                    @log.EntityName
+                                </td>
+                                <td class="px-6 py-4">
+                                    <button @onclick="() => ShowChanges(log)" class="text-elitc-blue hover:text-elitc-blue/80 font-medium text-sm transition-colors">
+                                        View Changes
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (SelectedLog != null)
+{
+    <div class="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-zinc-900">Change Details</h3>
+                <button @onclick="CloseModal" class="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 bg-zinc-50">
+                <div class="bg-zinc-900 text-zinc-300 p-4 rounded-xl font-mono text-sm overflow-x-auto">
+                    <pre>@FormatJson(SelectedLog.Changes)</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AuditLog>? Logs;
+    private AuditLog? SelectedLog;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLogs();
+    }
+
+    private async Task LoadLogs()
+    {
+        Logs = await DbService.GetAuditLogsAsync();
+    }
+
+    private string GetActionBadgeClass(string action) => action switch
+    {
+        "Insert" => "bg-emerald-100 text-emerald-700",
+        "Update" => "bg-blue-100 text-blue-700",
+        "Delete" => "bg-red-100 text-red-700",
+        _ => "bg-zinc-100 text-zinc-700"
+    };
+
+    private void ShowChanges(AuditLog log)
+    {
+        SelectedLog = log;
+    }
+
+    private void CloseModal()
+    {
+        SelectedLog = null;
+    }
+
+    private string FormatJson(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return string.Empty;
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<JsonElement>(json);
+            return JsonSerializer.Serialize(parsed, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return json;
+        }
+    }
+}

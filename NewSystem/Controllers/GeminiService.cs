@@ -99,7 +99,7 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
         if (relevantCourses != null && relevantCourses.Any())
         {
             var courseContext = "Here are the relevant courses based on the user's inquiry:\n" +
-                JsonSerializer.Serialize(relevantCourses.Select(c => new { c.Title, c.Category, c.Description, c.Level, c.Topics }));
+                JsonSerializer.Serialize(relevantCourses.Select(c => new { c.Title, c.Category, c.Synopsis, c.Level, c.TargetAudience, c.Duration, c.Url }));
             systemInstructionText += "\n\n" + courseContext;
         }
 
