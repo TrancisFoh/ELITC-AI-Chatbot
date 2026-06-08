@@ -11,25 +11,47 @@
 
 <PageTitle>Recovery code verification</PageTitle>
 
-<h1>Recovery code verification</h1>
-<hr />
-<StatusMessage Message="@message" />
-<p>
-    You have requested to log in with a recovery code. This login will not be remembered until you provide
-    an authenticator app code at log in or disable 2FA and log in again.
-</p>
-<div class="row">
-    <div class="col-md-4">
-        <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="form-control" autocomplete="off" placeholder="RecoveryCode" />
-                <label for="Input.RecoveryCode" class="form-label">Recovery Code</label>
-                <ValidationMessage For="() => Input.RecoveryCode" class="text-danger" />
+<div class="min-h-screen bg-zinc-50 flex items-center justify-center p-6 font-sans">
+    <div class="w-full max-w-md bg-white p-8 rounded-3xl border border-zinc-200 shadow-xl transition-all duration-500 transform translate-y-0 opacity-100">
+        <div class="flex flex-col items-center mb-6">
+            <div class="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mb-4 border border-white/10 shadow-inner">
+                <i data-lucide="key" class="w-8 h-8 text-elitc-gold"></i>
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+            <h1 class="text-2xl font-bold text-zinc-900 text-center">Recovery Code Verification</h1>
+            <p class="text-zinc-500 text-sm text-center mt-2 leading-relaxed">
+                You have requested to log in with a recovery code. This login will not be remembered until you provide an authenticator app code at log in or disable 2FA and log in again.
+            </p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg flex items-center gap-2 mb-4">
+                <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                <span>@message</span>
+            </div>
+        }
+
+        <EditForm Model="Input" FormName="login-with-recovery-code" OnValidSubmit="OnValidSubmitAsync" method="post" class="space-y-4">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg" role="alert" />
+            
+            <div>
+                <label for="Input.RecoveryCode" class="block text-sm font-medium text-zinc-700 mb-1">Recovery Code</label>
+                <InputText @bind-Value="Input.RecoveryCode" id="Input.RecoveryCode" class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/30 focus:border-elitc-gold outline-none transition-all text-sm tracking-[0.2em] text-center font-mono font-bold text-zinc-900" autocomplete="off" placeholder="XXXX-XXXX" />
+                <ValidationMessage For="() => Input.RecoveryCode" class="text-rose-500 text-xs mt-1" />
+            </div>
+            
+            <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer shadow-lg shadow-zinc-900/20 mt-4">
+                Verify and Log In
+            </button>
         </EditForm>
+        
+        <footer class="mt-8 pt-6 border-t border-zinc-100 flex flex-col items-center justify-center">
+            <a href="Account/LoginWith2fa?ReturnUrl=@ReturnUrl" class="text-sm text-zinc-500 hover:text-elitc-gold font-medium transition-colors flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                Back to Authenticator
+            </a>
+        </footer>
     </div>
 </div>
 

@@ -4,8 +4,13 @@
     @Body
 </main>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+<div id="blazor-error-ui" data-nosnippet class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] bg-rose-600 text-white px-5 py-4 rounded-2xl shadow-xl shadow-rose-600/20 border border-rose-500/50 flex items-center gap-4 text-sm font-medium w-max max-w-[90vw]">
+    <i data-lucide="alert-circle" class="w-5 h-5 shrink-0 text-rose-200"></i>
+    <div>
+        An unhandled error has occurred.
+        <a href="." class="reload ml-2 text-rose-200 underline hover:text-white font-bold transition-colors">Reload</a>
+    </div>
+    <button class="dismiss ml-3 p-1.5 hover:bg-rose-700 rounded-xl transition-colors text-rose-200 hover:text-white" title="Dismiss">
+        <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
 </div>

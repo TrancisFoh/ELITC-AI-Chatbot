@@ -3,32 +3,46 @@
 
 @inject SignInManager<ApplicationUser> SignInManager
 
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
-    </li>
+<nav class="flex flex-col space-y-1">
+    <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage" Match="NavLinkMatch.All">
+        <i data-lucide="user" class="w-4 h-4"></i>
+        Profile
+    </NavLink>
+    <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage/Email">
+        <i data-lucide="mail" class="w-4 h-4"></i>
+        Email
+    </NavLink>
+    <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage/ChangePassword">
+        <i data-lucide="key" class="w-4 h-4"></i>
+        Password
+    </NavLink>
     @if (hasExternalLogins)
     {
-        <li class="nav-item">
-            <NavLink class="nav-link" href="Account/Manage/ExternalLogins">External logins</NavLink>
-        </li>
+        <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage/ExternalLogins">
+            <i data-lucide="link" class="w-4 h-4"></i>
+            External logins
+        </NavLink>
     }
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/TwoFactorAuthentication">Two-factor authentication</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Passkeys">Passkeys</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
-    </li>
-</ul>
+    <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage/TwoFactorAuthentication">
+        <i data-lucide="shield" class="w-4 h-4"></i>
+        Two-factor authentication
+    </NavLink>
+    <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage/Passkeys">
+        <i data-lucide="fingerprint" class="w-4 h-4"></i>
+        Passkeys
+    </NavLink>
+    <NavLink class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 aria-[current='page']:bg-zinc-900 aria-[current='page']:text-white aria-[current='page']:shadow-md aria-[current='page']:hover:bg-zinc-800" href="Account/Manage/PersonalData">
+        <i data-lucide="database" class="w-4 h-4"></i>
+        Personal data
+    </NavLink>
+    
+    <div class="h-px bg-zinc-200 my-2"></div>
+    
+    <a href="admin" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        Return to Admin
+    </a>
+</nav>
 
 @code {
     private bool hasExternalLogins;

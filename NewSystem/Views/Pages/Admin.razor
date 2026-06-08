@@ -75,6 +75,11 @@
                 </div>
             </div>
             
+            <a href="/Account/Manage" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-zinc-900 hover:text-white transition-all font-medium text-sm text-left mb-2">
+                <i data-lucide="user" class="w-4 h-4"></i>
+                Account Settings
+            </a>
+            
             <form action="/Account/Logout" method="post">
                 <AntiforgeryToken />
                 <input type="hidden" name="ReturnUrl" value="" />

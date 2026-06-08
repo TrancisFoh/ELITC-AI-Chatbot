@@ -20,7 +20,7 @@
             <p class="text-zinc-500 text-sm text-center mt-2">Enter credentials to manage ELITC Assistant</p>
         </div>
 
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" class="space-y-4">
+        <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login" class="space-y-4">
             <DataAnnotationsValidator />
             
             @if (!string.IsNullOrEmpty(errorMessage))
@@ -56,6 +56,17 @@
             <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer shadow-lg shadow-zinc-900/20 mt-2">
                 Access Dashboard
             </button>
+            
+            <div class="relative flex items-center py-2">
+                <div class="flex-grow border-t border-zinc-200"></div>
+                <span class="flex-shrink-0 mx-4 text-zinc-400 text-sm font-medium">OR</span>
+                <div class="flex-grow border-t border-zinc-200"></div>
+            </div>
+
+            <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" EmailName="Input.Email" class="w-full bg-white text-zinc-900 font-bold py-4 rounded-xl hover:bg-zinc-50 transition-all active:scale-95 cursor-pointer shadow-md shadow-zinc-200/50 border border-zinc-200 flex items-center justify-center gap-3">
+                <i data-lucide="fingerprint" class="w-5 h-5 text-elitc-gold"></i>
+                Sign in with Passkey
+            </PasskeySubmit>
         </EditForm>
 
         <footer class="mt-8 pt-8 border-t border-zinc-100 flex flex-col items-center justify-center gap-4">
@@ -69,6 +80,7 @@
 
 @code {
     private string? errorMessage;
+    private EditContext editContext = default!;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -88,6 +100,7 @@
         }
         
         Input ??= new();
+        editContext = new EditContext(Input);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -99,7 +112,25 @@
 
     public async Task LoginUser()
     {
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: false);
+        if (!string.IsNullOrEmpty(Input.Passkey?.Error))
+        {
+            errorMessage = Input.Passkey.Error;
+            return;
+        }
+
+        Microsoft.AspNetCore.Identity.SignInResult result;
+        if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
+        {
+            result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
+        }
+        else
+        {
+            if (!editContext.Validate())
+            {
+                return;
+            }
+            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: false);
+        }
 
         if (result.Succeeded)
         {
@@ -131,6 +162,6 @@
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-
+        public PasskeyInputModel? Passkey { get; set; }
     }
 }

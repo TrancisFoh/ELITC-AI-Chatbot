@@ -9,24 +9,32 @@
 
 <PageTitle>Disable two-factor authentication (2FA)</PageTitle>
 
-<StatusMessage />
-<h3>Disable two-factor authentication (2FA)</h3>
-
-<div class="alert alert-warning" role="alert">
-    <p>
-        <strong>This action only disables 2FA.</strong>
-    </p>
-    <p>
-        Disabling 2FA does not change the keys used in authenticator apps. If you wish to change the key
-        used in an authenticator app you should <a href="Account/Manage/ResetAuthenticator">reset your authenticator keys.</a>
-    </p>
+<div class="mb-6">
+    <h3 class="text-xl font-bold text-zinc-900">Disable two-factor authentication (2FA)</h3>
 </div>
 
-<div>
-    <form @formname="disable-2fa" @onsubmit="OnSubmitAsync" method="post">
-        <AntiforgeryToken />
-        <button class="btn btn-danger" type="submit">Disable 2FA</button>
-    </form>
+<StatusMessage />
+
+<div class="max-w-xl">
+    <div class="p-4 mb-6 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-500 shrink-0 mt-0.5"></i>
+        <div>
+            <strong class="text-rose-700 block font-semibold mb-1">This action only disables 2FA.</strong>
+            <p class="text-rose-600 text-sm">
+                Disabling 2FA does not change the keys used in authenticator apps. If you wish to change the key
+                used in an authenticator app you should <a href="Account/Manage/ResetAuthenticator" class="font-medium underline hover:text-rose-800">reset your authenticator keys.</a>
+            </p>
+        </div>
+    </div>
+
+    <div>
+        <form @formname="disable-2fa" @onsubmit="OnSubmitAsync" method="post">
+            <AntiforgeryToken />
+            <button type="submit" class="px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all active:scale-95 cursor-pointer shadow-md shadow-rose-600/20">
+                Disable 2FA
+            </button>
+        </form>
+    </div>
 </div>
 
 @code {

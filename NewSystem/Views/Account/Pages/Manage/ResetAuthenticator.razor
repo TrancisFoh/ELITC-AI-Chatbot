@@ -10,23 +10,32 @@
 
 <PageTitle>Reset authenticator key</PageTitle>
 
-<StatusMessage />
-<h3>Reset authenticator key</h3>
-<div class="alert alert-warning" role="alert">
-    <p>
-        <span class="glyphicon glyphicon-warning-sign"></span>
-        <strong>If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong>
-    </p>
-    <p>
-        This process disables 2FA until you verify your authenticator app.
-        If you do not complete your authenticator app configuration you may lose access to your account.
-    </p>
+<div class="mb-6">
+    <h3 class="text-xl font-bold text-zinc-900">Reset authenticator key</h3>
 </div>
-<div>
-    <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
-        <AntiforgeryToken />
-        <button class="btn btn-danger" type="submit">Reset authenticator key</button>
-    </form>
+
+<StatusMessage />
+
+<div class="max-w-xl">
+    <div class="p-4 mb-6 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-500 shrink-0 mt-0.5"></i>
+        <div>
+            <strong class="text-rose-700 block font-semibold mb-2">If you reset your authenticator key your authenticator app will not work until you reconfigure it.</strong>
+            <p class="text-rose-600 text-sm">
+                This process disables 2FA until you verify your authenticator app.
+                If you do not complete your authenticator app configuration you may lose access to your account.
+            </p>
+        </div>
+    </div>
+    
+    <div>
+        <form @formname="reset-authenticator" @onsubmit="OnSubmitAsync" method="post">
+            <AntiforgeryToken />
+            <button type="submit" class="px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all active:scale-95 cursor-pointer shadow-md shadow-rose-600/20">
+                Reset authenticator key
+            </button>
+        </form>
+    </div>
 </div>
 
 @code {

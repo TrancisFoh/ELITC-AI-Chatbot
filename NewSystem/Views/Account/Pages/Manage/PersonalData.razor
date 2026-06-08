@@ -8,22 +8,38 @@
 
 <PageTitle>Personal Data</PageTitle>
 
-<StatusMessage />
-<h3>Personal Data</h3>
+<div class="mb-6">
+    <h3 class="text-xl font-bold text-zinc-900">Personal Data</h3>
+</div>
 
-<div class="row">
-    <div class="col-md-6">
-        <p>Your account contains personal data that you have given us. This page allows you to download or delete that data.</p>
-        <p>
-            <strong>Deleting this data will permanently remove your account, and this cannot be recovered.</strong>
-        </p>
-        <form action="Account/Manage/DownloadPersonalData" method="post">
+<StatusMessage />
+
+<div class="max-w-xl">
+    <p class="text-zinc-600 text-sm leading-relaxed mb-4">
+        Your account contains personal data that you have given us. This page allows you to download or delete that data.
+    </p>
+    
+    <div class="p-4 mb-6 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-500 shrink-0 mt-0.5"></i>
+        <div>
+            <strong class="text-rose-700 block font-semibold mb-1">Warning</strong>
+            <p class="text-rose-600 text-sm">Deleting this data will permanently remove your account, and this cannot be recovered.</p>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap gap-4">
+        <form action="Account/Manage/DownloadPersonalData" method="post" class="inline-block">
             <AntiforgeryToken />
-            <button class="btn btn-primary" type="submit">Download</button>
+            <button type="submit" class="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-xl transition-colors text-sm shadow-md shadow-zinc-900/10 flex items-center gap-2">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                Download Data
+            </button>
         </form>
-        <p>
-            <a href="Account/Manage/DeletePersonalData" class="btn btn-danger">Delete</a>
-        </p>
+        
+        <a href="Account/Manage/DeletePersonalData" class="px-5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-medium rounded-xl transition-colors text-sm border border-rose-200 flex items-center gap-2">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            Delete Account
+        </a>
     </div>
 </div>
 

@@ -11,55 +11,61 @@
 
 <PageTitle>Manage your external logins</PageTitle>
 
+<div class="mb-6">
+    <h3 class="text-xl font-bold text-zinc-900">Manage your external logins</h3>
+</div>
+
 <StatusMessage />
+
 @if (currentLogins?.Count > 0)
 {
-    <h3>Registered Logins</h3>
-    <table class="table">
-        <tbody>
-            @foreach (var login in currentLogins)
-            {
-                <tr>
-                    <td>@login.ProviderDisplayName</td>
-                    <td>
-                        @if (showRemoveButton)
-                        {
-                            <form @formname="@($"remove-login-{login.LoginProvider}")" @onsubmit="OnSubmitAsync" method="post">
-                                <AntiforgeryToken />
-                                <div>
-                                    <input type="hidden" name="@nameof(LoginProvider)" value="@login.LoginProvider" />
-                                    <input type="hidden" name="@nameof(ProviderKey)" value="@login.ProviderKey" />
-                                    <button type="submit" class="btn btn-primary" title="Remove this @login.ProviderDisplayName login from your account">Remove</button>
-                                </div>
-                            </form>
-                        }
-                        else
-                        {
-                            @: &nbsp;
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="mb-8 max-w-xl">
+        <h4 class="font-bold text-zinc-900 mb-4">Registered Logins</h4>
+        <div class="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
+            <table class="w-full text-left border-collapse">
+                <tbody class="divide-y divide-zinc-200 bg-white">
+                    @foreach (var login in currentLogins)
+                    {
+                        <tr class="hover:bg-zinc-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-zinc-900 font-medium">@login.ProviderDisplayName</td>
+                            <td class="px-6 py-4 text-right">
+                                @if (showRemoveButton)
+                                {
+                                    <form @formname="@($"remove-login-{login.LoginProvider}")" @onsubmit="OnSubmitAsync" method="post" class="inline-block">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="@nameof(LoginProvider)" value="@login.LoginProvider" />
+                                        <input type="hidden" name="@nameof(ProviderKey)" value="@login.ProviderKey" />
+                                        <button type="submit" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-sm font-medium rounded-lg transition-colors border border-rose-200" title="Remove this @login.ProviderDisplayName login from your account">Remove</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    @: &nbsp;
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 }
+
 @if (otherLogins?.Count > 0)
 {
-    <h4>Add another service to log in.</h4>
-    <hr />
-    <form class="form-horizontal" action="Account/Manage/LinkExternalLogin" method="post">
-        <AntiforgeryToken />
-        <div>
-            <p>
-                @foreach (var provider in otherLogins)
-                {
-                    <button type="submit" class="btn btn-primary" name="Provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
-                        @provider.DisplayName
-                    </button>
-                }
-            </p>
-        </div>
-    </form>
+    <div class="max-w-xl">
+        <h4 class="font-bold text-zinc-900 mb-4">Add another service to log in</h4>
+        
+        <form class="flex flex-wrap gap-3" action="Account/Manage/LinkExternalLogin" method="post">
+            <AntiforgeryToken />
+            @foreach (var provider in otherLogins)
+            {
+                <button type="submit" class="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-xl transition-colors text-sm shadow-md shadow-zinc-900/10" name="Provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                    @provider.DisplayName
+                </button>
+            }
+        </form>
+    </div>
 }
 
 @code {
