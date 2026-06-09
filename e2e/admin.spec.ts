@@ -25,9 +25,9 @@ test.describe('Admin Access & Security', () => {
   test('admin can login and access dashboard', async ({ page }) => {
     await page.goto('/Account/Login');
 
-    // Use seeded credentials
-    await page.fill('input[name*="Email"]', 'admin@elitc.com');
-    await page.fill('input[name*="Password"]', 'Admin1234!');
+    // Use test credentials
+    await page.fill('input[name*="Email"]', 'test@gmail.com');
+    await page.fill('input[name*="Password"]', 'Test1234!');
     await page.click('button[type="submit"]');
 
     // Should be redirected to /admin
@@ -40,8 +40,8 @@ test.describe('Admin Access & Security', () => {
 test.describe('Admin Dashboard Functionality', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/Account/Login');
-    await page.fill('input[name*="Email"]', 'admin@elitc.com');
-    await page.fill('input[name*="Password"]', 'Admin1234!');
+    await page.fill('input[name*="Email"]', 'test@gmail.com');
+    await page.fill('input[name*="Password"]', 'Test1234!');
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL(/\/admin/);
   });
