@@ -1,0 +1,29 @@
+@if (Options != null && Options.Any())
+{
+    <div class="px-5 pb-3">
+        <div class="flex flex-wrap gap-2 animate-fade-in-up">
+            @foreach (var option in Options)
+            {
+                <button @onclick="() => OnOptionSelected(option)" class="text-xs font-medium bg-white text-zinc-700 border border-zinc-200 px-3 py-1.5 rounded-full hover:bg-zinc-50 hover:border-elitc-gold/30 hover:text-elitc-blue transition-all shadow-sm active:scale-95">
+                    @option
+                </button>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public List<string> Options { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<string> OnSelected { get; set; }
+
+    private async Task OnOptionSelected(string option)
+    {
+        if (OnSelected.HasDelegate)
+        {
+            await OnSelected.InvokeAsync(option);
+        }
+    }
+}

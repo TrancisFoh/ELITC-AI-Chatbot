@@ -1,0 +1,138 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@inject DbService DbService
+@inject IJSRuntime JS
+
+<div class="space-y-6">
+    <div class="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-zinc-900 text-lg">System Error Logs</h3>
+                    <p class="text-xs text-zinc-500 font-medium">Monitor application errors and exceptions.</p>
+                </div>
+            </div>
+            
+            <button @onclick="ClearLogs" disabled="@(!logs.Any())" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all disabled:opacity-50">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Clear All Logs
+            </button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left text-sm text-zinc-600 min-w-[800px]">
+                <thead class="bg-zinc-50/80 text-xs uppercase font-bold text-zinc-400 border-b border-zinc-100">
+                    <tr>
+                        <th class="px-6 py-4">Time</th>
+                        <th class="px-6 py-4">Component</th>
+                        <th class="px-6 py-4">Error Message</th>
+                        <th class="px-6 py-4">Session ID</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-zinc-100 bg-white">
+                    @if (isLoading)
+                    {
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center gap-3 text-zinc-400">
+                                    <i data-lucide="refresh-cw" class="w-6 h-6 animate-spin text-elitc-gold"></i>
+                                    <span class="text-sm font-medium">Loading error logs...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else if (!logs.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center">
+                                <div class="flex flex-col items-center justify-center gap-2 text-zinc-400">
+                                    <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-400"></i>
+                                    <span class="text-sm font-bold text-zinc-700">System is healthy</span>
+                                    <span class="text-xs text-zinc-400">No error logs found.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var log in logs)
+                        {
+                            <tr class="hover:bg-zinc-50/50 transition-colors group">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-xs font-bold text-zinc-900">@FormatTime(log.Timestamp)</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2.5 py-1 bg-zinc-100 text-zinc-600 rounded-lg text-xs font-bold border border-zinc-200">
+                                        @log.Component
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-rose-600 font-medium">@log.ErrorMessage</div>
+                                    @if (!string.IsNullOrEmpty(log.StackTrace))
+                                    {
+                                        <details class="mt-2">
+                                            <summary class="text-xs text-zinc-500 cursor-pointer hover:text-zinc-700">View Stack Trace</summary>
+                                            <pre class="mt-2 p-3 bg-zinc-950 text-zinc-300 rounded-xl text-[10px] overflow-x-auto custom-scrollbar font-mono">@log.StackTrace</pre>
+                                        </details>
+                                    }
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if (!string.IsNullOrEmpty(log.SessionId))
+                                    {
+                                        <span class="text-xs font-mono text-zinc-500 bg-zinc-50 px-2 py-1 rounded border border-zinc-100">@log.SessionId</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-zinc-400 italic">N/A</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ErrorLog> logs = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLogs();
+    }
+
+    private async Task LoadLogs()
+    {
+        isLoading = true;
+        logs = await DbService.GetErrorLogsAsync();
+        isLoading = false;
+        
+        StateHasChanged();
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    private async Task ClearLogs()
+    {
+        await DbService.ClearErrorLogsAsync();
+        await LoadLogs();
+    }
+
+    private string FormatTime(long timestamp)
+    {
+        var dto = DateTimeOffset.FromUnixTimeMilliseconds(timestamp).ToLocalTime();
+        return dto.ToString("MMM dd yyyy, HH:mm:ss");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("chatInterop.initIcons");
+        }
+    }
+}

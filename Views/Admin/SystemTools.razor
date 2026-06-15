@@ -1,0 +1,165 @@
+@using ELITC_AI_Chatbot.Controllers
+@inject DbService DbService
+@inject IJSRuntime JS
+@inject IWebHostEnvironment Env
+@using System.Text.Json
+@using ELITC_AI_Chatbot.Models
+@using System.Diagnostics
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="p-8 bg-white rounded-3xl border border-zinc-200 shadow-sm">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                <i data-lucide="activity" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-zinc-900 text-lg">System Health & Metrics</h3>
+                <p class="text-sm text-zinc-500">Live statistics and API usage.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Uptime</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-zinc-400"></i>
+                    <p class="text-lg font-bold text-zinc-900">@uptime</p>
+                </div>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Database Size</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-zinc-400"></i>
+                    <p class="text-lg font-bold text-zinc-900">@dbSizeMb MB</p>
+                </div>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Errors (24h)</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 @(recentErrors > 0 ? "text-rose-500" : "text-emerald-500")"></i>
+                    <p class="text-lg font-bold text-zinc-900">@recentErrors</p>
+                </div>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Total Tokens</p>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="cpu" class="w-4 h-4 text-purple-500"></i>
+                    <p class="text-lg font-bold text-zinc-900">@totalTokens.ToString("N0")</p>
+                </div>
+                <p class="text-xs text-zinc-500 mt-1">Est. Cost: $@estimatedCost.ToString("F4")</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-8 bg-white rounded-3xl border border-zinc-200 shadow-sm">
+        <div class="flex items-center gap-4 mb-6">
+            <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
+                <i data-lucide="database" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-zinc-900 text-lg">Database Health</h3>
+                <p class="text-sm text-zinc-500">Current active collections and record counts.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Courses</p>
+                    <p class="text-2xl font-bold text-zinc-900">@courseCount</p>
+                </div>
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
+            </div>
+            <div class="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Configs</p>
+                    <p class="text-2xl font-bold text-zinc-900">@configCount</p>
+                </div>
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int courseCount = 0;
+    private int configCount = 0;
+    
+    private string uptime = "0m";
+    private string dbSizeMb = "0.00";
+    private int recentErrors = 0;
+    private long totalTokens = 0;
+    private double estimatedCost = 0.0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStats();
+        CalculateUptime();
+        CalculateDbSize();
+    }
+
+    private async Task LoadStats()
+    {
+        var courses = await DbService.GetAllCoursesAsync();
+        var configs = await DbService.GetAllConfigsAsync();
+        courseCount = courses.Count;
+        configCount = configs.Count;
+
+        // Errors in last 24h
+        var errorLogs = await DbService.GetErrorLogsAsync();
+        var oneDayAgo = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeMilliseconds();
+        recentErrors = errorLogs.Count(e => e.Timestamp >= oneDayAgo);
+
+        // Tokens
+        var tokensStr = await DbService.GetConfigValueAsync("TOTAL_TOKENS_USED", "0");
+        if (long.TryParse(tokensStr, out var tokens))
+        {
+            totalTokens = tokens;
+        }
+        
+        // Est Cost: Gemini 1.5 Flash is roughly $0.075 per 1 million tokens (blended input/output)
+        estimatedCost = (totalTokens / 1_000_000.0) * 0.075;
+    }
+
+    private void CalculateUptime()
+    {
+        try
+        {
+            var process = Process.GetCurrentProcess();
+            var duration = DateTime.Now - process.StartTime;
+            
+            if (duration.TotalDays >= 1)
+                uptime = $"{(int)duration.TotalDays}d {duration.Hours}h";
+            else if (duration.TotalHours >= 1)
+                uptime = $"{(int)duration.TotalHours}h {duration.Minutes}m";
+            else
+                uptime = $"{(int)duration.TotalMinutes}m";
+        }
+        catch
+        {
+            uptime = "N/A";
+        }
+    }
+
+    private void CalculateDbSize()
+    {
+        try
+        {
+            var dbPath = System.IO.Path.Combine(Env.ContentRootPath, "Data", "app.db");
+            if (System.IO.File.Exists(dbPath))
+            {
+                var fileInfo = new System.IO.FileInfo(dbPath);
+                dbSizeMb = (fileInfo.Length / 1024.0 / 1024.0).ToString("0.00");
+            }
+        }
+        catch
+        {
+            dbSizeMb = "N/A";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+}

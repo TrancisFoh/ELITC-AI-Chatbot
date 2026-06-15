@@ -1,0 +1,103 @@
+@using ELITC_AI_Chatbot.Controllers
+@inject GeminiService GeminiService
+
+<div class="px-5 py-4 border-b border-zinc-100 flex items-center justify-between bg-white/80 backdrop-blur-md rounded-t-[32px] sticky top-0 z-10">
+    <div class="flex items-center gap-3">
+        <div class="relative group">
+            <div class="w-10 h-10 bg-[#DBAC35] rounded-full flex items-center justify-center border-2 border-white shadow-md transition-transform group-hover:scale-105 overflow-hidden">
+                @if (!string.IsNullOrEmpty(BotAvatar))
+                {
+                    <img src="@BotAvatar" alt="Avatar" class="w-full h-full object-cover" />
+                }
+                else
+                {
+                    <span class="text-white text-sm font-bold">EA</span>
+                }
+            </div>
+            <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white @StatusDotClass"></div>
+        </div>
+        
+        <div>
+            <h3 class="font-bold text-zinc-900 leading-tight">@BotName</h3>
+            <div class="flex items-center gap-1.5">
+                <div class="w-1.5 h-1.5 rounded-full @StatusSmallDotClass"></div>
+                <p class="text-xs font-medium @StatusTextClass">@StatusText</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-1">
+        <button @onclick="OnReset" title="Start new conversation" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+        <button @onclick="OnToggleExpand" title="@(IsExpanded ? "Minimize" : "Expand")" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors hidden sm:flex">
+            @if (IsExpanded)
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+            }
+            else
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+            }
+        </button>
+        <button @onclick="OnClose" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-rose-50 text-zinc-400 hover:text-rose-500 transition-colors ml-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnReset { get; set; }
+    [Parameter] public EventCallback OnToggleExpand { get; set; }
+    [Parameter] public bool IsExpanded { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public bool HasError { get; set; }
+    [Parameter] public string? BotAvatar { get; set; }
+    [Parameter] public string BotName { get; set; } = "ELITC Assistant";
+
+    private bool isHealthy = true;
+    private bool isCheckingHealth = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var (healthy, _) = await GeminiService.CheckHealthAsync();
+            isHealthy = healthy;
+        }
+        catch
+        {
+            isHealthy = false;
+        }
+        isCheckingHealth = false;
+    }
+
+    private string StatusText =>
+        isCheckingHealth ? "Connecting..." :
+        !isHealthy ? "Offline" :
+        HasError ? "Error Occurred" :
+        IsLoading ? "Thinking..." :
+        "Online & Ready";
+
+    private string StatusDotClass =>
+        isCheckingHealth ? "bg-yellow-400 animate-pulse" :
+        !isHealthy ? "bg-rose-500" :
+        HasError ? "bg-rose-500" :
+        IsLoading ? "bg-yellow-400 animate-pulse" :
+        "bg-emerald-500";
+
+    private string StatusSmallDotClass =>
+        isCheckingHealth ? "bg-yellow-400 animate-pulse" :
+        !isHealthy ? "bg-rose-500" :
+        HasError ? "bg-rose-500" :
+        IsLoading ? "bg-yellow-400 animate-pulse" :
+        "bg-emerald-500 animate-pulse";
+
+    private string StatusTextClass =>
+        isCheckingHealth ? "text-yellow-600" :
+        !isHealthy ? "text-rose-600" :
+        HasError ? "text-rose-600" :
+        IsLoading ? "text-yellow-600" :
+        "text-emerald-600";
+}

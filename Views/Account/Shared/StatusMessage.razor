@@ -1,0 +1,38 @@
+@if (!string.IsNullOrEmpty(DisplayMessage))
+{
+    var isError = DisplayMessage.StartsWith("Error");
+    var bgClass = isError ? "bg-rose-50 border-rose-100 text-rose-700" : "bg-emerald-50 border-emerald-100 text-emerald-700";
+    var iconColor = isError ? "text-rose-500" : "text-emerald-500";
+    var iconName = isError ? "alert-circle" : "check-circle-2";
+    var title = isError ? "Error" : "Success";
+
+    <div class="p-4 rounded-xl flex items-center gap-3 border mb-6 shadow-sm @bgClass" role="alert">
+        <i data-lucide="@iconName" class="w-5 h-5 flex-shrink-0 @iconColor"></i>
+        <div>
+            <strong class="block font-semibold">@title</strong>
+            @DisplayMessage
+        </div>
+    </div>
+}
+
+@code {
+    private string? messageFromCookie;
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private string? DisplayMessage => Message ?? messageFromCookie;
+
+    protected override void OnInitialized()
+    {
+        messageFromCookie = HttpContext.Request.Cookies[IdentityRedirectManager.StatusCookieName];
+
+        if (messageFromCookie is not null)
+        {
+            HttpContext.Response.Cookies.Delete(IdentityRedirectManager.StatusCookieName);
+        }
+    }
+}

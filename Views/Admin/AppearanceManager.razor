@@ -1,0 +1,206 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@inject DbService DbService
+
+<div class="space-y-6">
+    <div class="grid grid-cols-1 gap-6">
+        <div class="p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-600">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-zinc-900">Chatbot Avatar</h3>
+                        <p class="text-xs text-zinc-500 font-medium">Upload a custom photo for your AI Assistant.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @onclick="RemoveAvatar" disabled="@isSaving" class="bg-zinc-100 hover:bg-zinc-200 text-zinc-600 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Remove
+                    </button>
+                    <button @onclick="SaveAvatar" disabled="@(isSaving || string.IsNullOrEmpty(pendingAvatar))" class="bg-elitc-gold hover:bg-yellow-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-elitc-gold/20 transition-all active:scale-95 disabled:opacity-50">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        @(isSaving ? "Saving..." : "Save Changes")
+                    </button>
+                </div>
+            </div>
+
+            @if (showSavedMsg)
+            {
+                <div class="mb-4 p-3 bg-emerald-50 text-emerald-600 text-sm font-semibold rounded-lg flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Avatar updated successfully!
+                </div>
+            }
+            
+            @if (errorMessage != null)
+            {
+                <div class="mb-4 p-3 bg-rose-50 text-rose-600 text-sm font-semibold rounded-lg flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i> @errorMessage
+                </div>
+            }
+
+            <div class="flex items-center gap-8 mt-6">
+                <div class="flex-shrink-0">
+                    <div class="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-[#DBAC35] flex items-center justify-center overflow-hidden">
+                        @if (!string.IsNullOrEmpty(currentAvatarPreview))
+                        {
+                            <img src="@currentAvatarPreview" alt="Avatar Preview" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <span class="text-white text-2xl font-bold">EA</span>
+                        }
+                    </div>
+                </div>
+                
+                <div class="flex-1">
+                    <label class="block w-full cursor-pointer">
+                        <div class="w-full border-2 border-dashed border-zinc-300 rounded-2xl p-6 text-center hover:border-elitc-gold hover:bg-zinc-50 transition-colors">
+                            <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-zinc-400 mb-2"></i>
+                            <p class="text-sm font-semibold text-zinc-700">Click to upload a new avatar</p>
+                            <p class="text-xs text-zinc-500 mt-1">PNG, JPG up to 1MB</p>
+                        </div>
+                        <InputFile OnChange="HandleFileSelected" class="hidden" accept="image/png, image/jpeg, image/gif" />
+                    </label>
+                </div>
+            </div>
+        </div>
+        <!-- Chatbot Name Configuration -->
+        <div class="p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                        <i data-lucide="type" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-zinc-900">Chatbot Name</h3>
+                        <p class="text-xs text-zinc-500 font-medium">Set the display name for your AI Assistant.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @onclick="SaveBotName" disabled="@isSavingName" class="bg-elitc-gold hover:bg-yellow-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-elitc-gold/20 transition-all active:scale-95 disabled:opacity-50">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        @(isSavingName ? "Saving..." : "Save Name")
+                    </button>
+                </div>
+            </div>
+
+            @if (showNameSavedMsg)
+            {
+                <div class="mb-4 p-3 bg-emerald-50 text-emerald-600 text-sm font-semibold rounded-lg flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Name updated successfully!
+                </div>
+            }
+
+            <div class="mt-4">
+                <input type="text" @bind="botName" class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm font-medium" placeholder="ELITC Assistant" />
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+@code {
+    private string? savedAvatar = null;
+    private string? pendingAvatar = null;
+    private string? currentAvatarPreview => pendingAvatar ?? savedAvatar;
+    
+    private bool isSaving = false;
+    private bool showSavedMsg = false;
+    private string? errorMessage = null;
+
+    private string botName = "ELITC Assistant";
+    private bool isSavingName = false;
+    private bool showNameSavedMsg = false;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        savedAvatar = await DbService.GetConfigValueAsync("BOT_AVATAR", "");
+        if (string.IsNullOrEmpty(savedAvatar)) savedAvatar = null;
+
+        var name = await DbService.GetConfigValueAsync("BOT_NAME", "ELITC Assistant");
+        if (!string.IsNullOrWhiteSpace(name)) botName = name;
+
+
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        errorMessage = null;
+        var file = e.File;
+        if (file == null) return;
+        
+        if (file.Size > 1024 * 1024)
+        {
+            errorMessage = "Image size must be less than 1MB.";
+            return;
+        }
+
+        try
+        {
+            var format = file.ContentType;
+            
+            // To ensure we don't try to load too large into memory, use a MemoryStream safely
+            using var memoryStream = new MemoryStream();
+            await file.OpenReadStream(1024 * 1024).CopyToAsync(memoryStream);
+            var buffer = memoryStream.ToArray();
+            
+            pendingAvatar = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error reading file: " + ex.Message;
+        }
+    }
+
+    private async Task SaveAvatar()
+    {
+        if (pendingAvatar == null) return;
+        isSaving = true;
+        errorMessage = null;
+        
+        await DbService.SaveConfigAsync(new Config { Id = "config-avatar", Key = "BOT_AVATAR", Value = pendingAvatar });
+        
+        savedAvatar = pendingAvatar;
+        pendingAvatar = null;
+        isSaving = false;
+        
+        showSavedMsg = true;
+        await Task.Delay(3000);
+        showSavedMsg = false;
+        StateHasChanged();
+    }
+
+    private async Task RemoveAvatar()
+    {
+        isSaving = true;
+        await DbService.SaveConfigAsync(new Config { Id = "config-avatar", Key = "BOT_AVATAR", Value = "" });
+        savedAvatar = null;
+        pendingAvatar = null;
+        isSaving = false;
+        
+        showSavedMsg = true;
+        await Task.Delay(3000);
+        showSavedMsg = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveBotName()
+    {
+        isSavingName = true;
+        await DbService.SaveConfigAsync(new Config { Id = "config-botname", Key = "BOT_NAME", Value = botName });
+        isSavingName = false;
+        
+        showNameSavedMsg = true;
+        await Task.Delay(3000);
+        showNameSavedMsg = false;
+        StateHasChanged();
+    }
+
+
+}
