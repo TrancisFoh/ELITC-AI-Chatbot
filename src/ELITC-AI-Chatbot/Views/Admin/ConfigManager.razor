@@ -1,0 +1,85 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@inject DbService DbService
+@inject IConfiguration Configuration
+
+<div class="space-y-6">
+    <div class="grid grid-cols-1 gap-6">
+        <div class="p-6 bg-white rounded-3xl border border-zinc-200 shadow-sm relative overflow-hidden group">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-zinc-900">AI Personality & Tone</h3>
+                        <p class="text-xs text-zinc-500 font-medium">Control how the bot interacts with users.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button @onclick="ResetToDefault" disabled="@isSaving" class="bg-zinc-100 hover:bg-zinc-200 text-zinc-600 px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        Reset to Default
+                    </button>
+                    <button @onclick="SavePrompt" disabled="@isSaving" class="bg-elitc-gold hover:bg-yellow-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 shadow-lg shadow-elitc-gold/20 transition-all active:scale-95 disabled:opacity-50">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        @(isSaving ? "Saving..." : "Save Prompt")
+                    </button>
+                </div>
+            </div>
+            
+            @if (showSavedMsg)
+            {
+                <div class="mb-4 p-3 bg-emerald-50 text-emerald-600 text-sm font-semibold rounded-lg flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Configuration saved successfully!
+                </div>
+            }
+
+            @if (showResetMsg)
+            {
+                <div class="mb-4 p-3 bg-sky-50 text-sky-600 text-sm font-semibold rounded-lg flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Prompt reset to default. Click "Save Prompt" to persist.
+                </div>
+            }
+
+            <div class="space-y-4">
+                <textarea @bind="systemPrompt" rows="20" class="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-elitc-gold/5 focus:border-elitc-gold transition-all resize-none font-medium leading-relaxed font-mono"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string systemPrompt = "";
+    private bool isSaving = false;
+    private bool showSavedMsg = false;
+    private bool showResetMsg = false;
+
+    private string DefaultPrompt => Configuration["AdminSettings:DefaultSystemPrompt"] ?? "Fallback prompt";
+
+    protected override async Task OnInitializedAsync()
+    {
+        systemPrompt = await DbService.GetConfigValueAsync("SYSTEM_PROMPT", DefaultPrompt);
+    }
+
+    private async Task SavePrompt()
+    {
+        isSaving = true;
+        showResetMsg = false;
+        await DbService.SaveConfigAsync(new Config { Id = "config-1", Key = "SYSTEM_PROMPT", Value = systemPrompt });
+        isSaving = false;
+        
+        showSavedMsg = true;
+        await Task.Delay(3000);
+        showSavedMsg = false;
+        StateHasChanged();
+    }
+
+    private void ResetToDefault()
+    {
+        systemPrompt = DefaultPrompt;
+        showSavedMsg = false;
+        showResetMsg = true;
+    }
+}
+

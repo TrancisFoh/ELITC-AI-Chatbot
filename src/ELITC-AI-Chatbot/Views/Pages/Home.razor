@@ -1,0 +1,246 @@
+@page "/"
+@rendermode InteractiveServer
+
+@using ELITC_AI_Chatbot.Views.Chat
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@inject GeminiService GeminiService
+@inject RagService RagService
+@inject DbService DbService
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>@(botName)</PageTitle>
+
+<!-- Background Website Preview -->
+<iframe id="bg-iframe" src="https://www.elitc.com/" class="fixed inset-0 w-full h-full border-none z-0 pointer-events-auto"></iframe>
+
+<div class="font-sans selection:bg-elitc-gold/30 relative z-10">
+    <div class="fixed inset-0 z-40 transition-all duration-500 pointer-events-none @(isOpen ? "opacity-100" : "opacity-0")">
+        
+        <div class="fixed inset-0 bg-black/5 backdrop-blur-[2px] transition-opacity duration-500 @(isExpanded ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")" @onclick="() => { if (isExpanded) isExpanded = false; }"></div>
+        
+        <div class="fixed bottom-24 left-6 bg-white rounded-[32px] shadow-2xl overflow-hidden border border-white/50 flex flex-col transition-all duration-500 transform origin-bottom-left pointer-events-auto @(isOpen ? "scale-100" : "scale-0")"
+             style="width: @(isExpanded ? "calc(100vw - 48px)" : "410px"); height: @(isExpanded ? "calc(100vh - 144px)" : "670px");">
+            
+            <ChatHeader 
+                OnClose="() => isOpen = false"
+                OnReset="ResetChat"
+                OnToggleExpand="() => isExpanded = !isExpanded"
+                IsExpanded="isExpanded"
+                IsLoading="isLoading"
+                HasError="hasError"
+                BotAvatar="@botAvatar"
+                BotName="@botName" />
+
+            <div id="message-list-wrapper" class="flex-1 overflow-y-auto p-5 scroll-smooth custom-scrollbar bg-zinc-50/50">
+                
+                @if (!messages.Any())
+                {
+                    <div class="h-full flex flex-col items-center justify-center text-center px-6 animate-fade-in">
+                        <div class="w-16 h-16 bg-white rounded-full shadow-md flex items-center justify-center mb-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-elitc-gold"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-zinc-900 mb-2">Welcome to ELITC</h2>
+                        <p class="text-sm text-zinc-500 leading-relaxed max-w-[250px]">
+                            I'm your dedicated training consultant. How can I help you accelerate your career today?
+                        </p>
+                    </div>
+                }
+                
+                @foreach (var msg in messages)
+                {
+                    <ChatMessageBubble 
+                        IsUser="@(msg.Role == "user")" 
+                        Content="@msg.Content" 
+                        Timestamp="@DateTimeOffset.FromUnixTimeMilliseconds(msg.Timestamp).LocalDateTime" 
+                        RelatedCourses="@msg.RelatedCourses"
+                        IsLoading="false"
+                        BotAvatar="@botAvatar" />
+                }
+                
+                @if (isLoading)
+                {
+                    <ChatMessageBubble IsUser="false" Content="@currentStreamingResponse" Timestamp="DateTime.Now" IsLoading="@(string.IsNullOrEmpty(currentStreamingResponse))" BotAvatar="@botAvatar" />
+                }
+            </div>
+
+            <ScrollAssist Show="showScrollAssist" OnClick="ScrollToBottom" />
+
+            <SuggestedReplies Options="currentSuggestedReplies" OnSelected="HandleSend" />
+
+            <ChatInput 
+                InputValue="@input" 
+                InputValueChanged="v => input = v" 
+                OnSubmit="HandleSend" 
+                IsLoading="isLoading" />
+                
+        </div>
+    </div>
+
+    <div class="fixed bottom-6 left-6 z-50">
+        <button @onclick="ToggleOpen" 
+                class="w-14 h-14 bg-[#DBAC35] rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all text-zinc-900 border-2 border-white/20 group hover:shadow-[#DBAC35]/40 hover:border-white">
+            @if (isOpen)
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            }
+            else
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    private bool isOpen = false;
+    private bool isExpanded = false;
+    private bool isLoading = false;
+    private bool hasError = false;
+    
+    private string input = "";
+    private string currentStreamingResponse = "";
+    
+    private string sessionId = Guid.NewGuid().ToString();
+    private List<ChatLog> messages = new();
+    
+    private bool showScrollAssist = false;
+    private List<string> defaultReplies = new() { "What courses do you offer?", "How do I sign up?", "What are the prerequisites?" };
+    private List<string> currentSuggestedReplies = new();
+
+    private string? botAvatar;
+    private string botName = "ELITC Assistant";
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentSuggestedReplies = defaultReplies.ToList();
+        botAvatar = await DbService.GetConfigValueAsync("BOT_AVATAR", "");
+        if (string.IsNullOrEmpty(botAvatar)) botAvatar = null;
+        botName = await DbService.GetConfigValueAsync("BOT_NAME", "ELITC Assistant");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Removed lucide trigger to prevent Blazor DOM crash
+    }
+
+    private void ToggleOpen()
+    {
+        isOpen = !isOpen;
+        if (isOpen && !messages.Any())
+        {
+            messages.Add(new ChatLog
+            {
+                Role = "model",
+                Content = $"Hey there! 👋 I'm your **{botName}**, here to help you find the perfect training course for your career goals. Whether you're looking into **WSQ certifications**, **IPC training**, or **AI & digital skills** — I've got you covered!\n\nWhat can I help you with today? 🎯",
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+        }
+    }
+
+    private void ResetChat()
+    {
+        messages.Clear();
+        sessionId = Guid.NewGuid().ToString();
+        input = "";
+        isLoading = false;
+        currentStreamingResponse = "";
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await JS.InvokeVoidAsync("scrollToBottom", "message-list-wrapper");
+    }
+
+    private async Task HandleSend(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+
+        messages.Add(new ChatLog 
+        { 
+            Role = "user", 
+            Content = message, 
+            Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() 
+        });
+        
+        if (message.Trim().Equals("/admin", StringComparison.OrdinalIgnoreCase))
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                NavManager.NavigateTo("/admin");
+            }
+            else
+            {
+                NavManager.NavigateTo("/Account/Login?ReturnUrl=/admin", forceLoad: true);
+            }
+            return;
+        }
+
+        isLoading = true;
+        hasError = false;
+        currentStreamingResponse = "";
+        currentSuggestedReplies.Clear();
+        await ScrollToBottom();
+        StateHasChanged();
+
+        try
+        {
+            var allCourses = await DbService.GetAllCoursesAsync();
+            var relevantCourses = RagService.RetrieveCourses(message, allCourses);
+
+            await foreach (var chunk in GeminiService.StreamChatAsync(messages, message, sessionId, relevantCourses))
+            {
+                currentStreamingResponse = chunk;
+                await ScrollToBottom();
+                StateHasChanged();
+            }
+
+            // After stream is done, save it to the history list
+            messages.Add(new ChatLog 
+            { 
+                Role = "model", 
+                Content = currentStreamingResponse, 
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                RelatedCourses = relevantCourses
+            });
+            
+            // Dynamic suggested replies
+            var generatedReplies = await GeminiService.GenerateSuggestedRepliesAsync(messages);
+            if (generatedReplies != null && generatedReplies.Any())
+            {
+                currentSuggestedReplies = generatedReplies.Take(3).ToList();
+            }
+            else
+            {
+                if (relevantCourses.Any())
+                {
+                    currentSuggestedReplies = new List<string> { $"Tell me more about {relevantCourses.First().Title}", "How do I sign up?", "Show other categories" };
+                }
+                else
+                {
+                    currentSuggestedReplies = defaultReplies.ToList();
+                }
+            }
+        }
+        catch (Exception)
+        {
+            hasError = true;
+            messages.Add(new ChatLog 
+            { 
+                Role = "model", 
+                Content = "I'm sorry, I encountered an error. Please try again.", 
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() 
+            });
+        }
+        finally
+        {
+            isLoading = false;
+            currentStreamingResponse = "";
+            await ScrollToBottom();
+            StateHasChanged();
+        }
+    }
+}

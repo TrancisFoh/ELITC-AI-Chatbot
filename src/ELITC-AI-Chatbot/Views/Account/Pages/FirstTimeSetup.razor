@@ -1,0 +1,240 @@
+@page "/Account/FirstTimeSetup"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using ELITC_AI_Chatbot.Models.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<FirstTimeSetup> Logger
+@inject IJSRuntime JS
+
+<PageTitle>First-Time Setup</PageTitle>
+
+<div class="min-h-screen bg-zinc-50 flex items-center justify-center p-6 font-sans">
+    <div
+        class="w-full max-w-md bg-white p-8 rounded-3xl border border-zinc-200 shadow-xl transition-all duration-500 transform translate-y-0 opacity-100">
+        <div class="flex flex-col items-center mb-8">
+            <div
+                class="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 border border-emerald-100 shadow-inner">
+                <i data-lucide="shield-check" class="w-8 h-8 text-emerald-500"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-zinc-900">Welcome!</h1>
+            <p class="text-zinc-500 text-sm text-center mt-2">Please secure your account by setting your own password.
+            </p>
+        </div>
+
+        <EditForm Model="Input" FormName="first-time-setup" OnValidSubmit="OnValidSubmitAsync" method="post"
+            class="space-y-4">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+
+            {
+                <div class="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+                    <span>@errorMessage</span>
+                </div>
+            }
+
+            <ValidationSummary class="p-3 bg-rose-50 text-rose-600 text-sm rounded-lg" role="alert" />
+
+            <div>
+                <label for="Input.OldPassword" class="block text-sm font-medium text-zinc-700 mb-1">Temporary
+                    Password</label>
+                <InputText type="password" @bind-Value="Input.OldPassword" id="Input.OldPassword"
+                    class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/30 focus:border-elitc-gold outline-none transition-all text-sm"
+                    aria-required="true" placeholder="Enter the password from your email" />
+                <ValidationMessage For="() => Input.OldPassword" class="text-rose-500 text-xs mt-1" />
+            </div>
+
+            <div>
+                <label for="Input.NewPassword" class="block text-sm font-medium text-zinc-700 mb-1">New Password</label>
+                <InputText type="password" @bind-Value="Input.NewPassword" id="Input.NewPassword"
+                    class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/30 focus:border-elitc-gold outline-none transition-all text-sm"
+                    aria-required="true" placeholder="Choose a secure password" />
+                <ValidationMessage For="() => Input.NewPassword" class="text-rose-500 text-xs mt-1" />
+            </div>
+
+            <div>
+                <label for="Input.ConfirmPassword" class="block text-sm font-medium text-zinc-700 mb-1">Confirm New
+                    Password</label>
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword"
+                    class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/30 focus:border-elitc-gold outline-none transition-all text-sm"
+                    aria-required="true" placeholder="Confirm your new password" />
+                <ValidationMessage For="() => Input.ConfirmPassword" class="text-rose-500 text-xs mt-1" />
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="showPasswordsToggle"
+                    onclick="var t=this.checked?'text':'password';document.getElementById('Input.OldPassword').type=t;document.getElementById('Input.NewPassword').type=t;document.getElementById('Input.ConfirmPassword').type=t;"
+                    class="w-4 h-4 text-emerald-500 border-zinc-300 rounded focus:ring-emerald-500 cursor-pointer" />
+                <label for="showPasswordsToggle"
+                    class="text-sm text-zinc-600 font-medium cursor-pointer select-none">Show passwords</label>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer shadow-lg shadow-zinc-900/20 mt-4">
+                Save & Continue
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+
+    private ApplicationUser? user;
+
+
+
+    [CascadingParameter]
+
+    private HttpContext HttpContext { get; set; } = default!;
+
+
+
+    [SupplyParameterFromForm]
+
+    private InputModel Input { get; set; } = default!;
+
+
+
+    protected override async Task OnInitializedAsync()
+
+    {
+
+        Input ??= new();
+
+
+
+        user = await UserManager.GetUserAsync(HttpContext.User);
+
+        if (user is null)
+
+        {
+
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+
+            return;
+
+        }
+
+
+
+        var hasPassword = await UserManager.HasPasswordAsync(user);
+
+        if (!hasPassword)
+
+        {
+
+            RedirectManager.RedirectTo("Account/Manage/SetPassword");
+
+        }
+
+    }
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+
+    {
+
+        if (firstRender)
+
+        {
+
+            await JS.InvokeVoidAsync("chatInterop.initIcons");
+
+        }
+
+    }
+
+
+
+    private async Task OnValidSubmitAsync()
+
+    {
+
+        if (user is null)
+
+        {
+
+            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+
+            return;
+
+        }
+
+
+
+        var changePasswordResult = await UserManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);
+
+        if (!changePasswordResult.Succeeded)
+
+        {
+
+            errorMessage = string.Join(" ", changePasswordResult.Errors.Select(error => error.Description));
+
+            return;
+
+        }
+
+
+
+        await SignInManager.RefreshSignInAsync(user);
+
+        Logger.LogInformation("User set their first-time password successfully.");
+
+
+
+        var claims = await UserManager.GetClaimsAsync(user);
+
+        var requireChangeClaim = claims.FirstOrDefault(c => c.Type == "RequirePasswordChange");
+
+        if (requireChangeClaim != null)
+
+        {
+
+            await UserManager.RemoveClaimAsync(user, requireChangeClaim);
+
+        }
+
+
+
+        RedirectManager.RedirectTo("/admin");
+
+    }
+
+
+
+    private sealed class InputModel
+
+    {
+
+        [Required]
+
+        [DataType(DataType.Password)]
+
+        public string OldPassword { get; set; } = "";
+
+
+
+        [Required]
+
+        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+
+        [DataType(DataType.Password)]
+
+        public string NewPassword { get; set; } = "";
+
+
+
+        [DataType(DataType.Password)]
+
+        [Compare("NewPassword", ErrorMessage = "The new password and confirmation password do not match.")]
+
+        public string ConfirmPassword { get; set; } = "";
+
+    }
+}

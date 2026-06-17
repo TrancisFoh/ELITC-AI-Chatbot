@@ -1,0 +1,114 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@inject IJSRuntime JS
+@inject CourseScraperService ScraperService
+
+<div class="fixed inset-0 z-50 flex items-center justify-center p-6">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @onclick="CloseEditor"></div>
+    <div class="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+        <div class="p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+            <h2 class="text-xl font-bold text-zinc-900">@(string.IsNullOrEmpty(Course.Id) ? "Add New Course" : "Edit Course")</h2>
+            <button @onclick="CloseEditor" class="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+            <div class="grid grid-cols-2 gap-6">
+                <div class="col-span-2 space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Course Title</label>
+                    <input type="text" @bind="Course.Title" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm font-medium" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Category</label>
+                    <input type="text" @bind="Course.Category" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Course Code</label>
+                    <input type="text" @bind="Course.Id" disabled="@(!IsNewCourse)" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm disabled:opacity-50" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Duration</label>
+                    <input type="text" @bind="Course.Duration" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
+                </div>
+                <div class="space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Target Audience</label>
+                    <input type="text" @bind="Course.TargetAudience" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" />
+                </div>
+                <div class="col-span-2 space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">URL</label>
+                    <div class="flex gap-2">
+                        <input type="text" @bind="Course.Url" class="flex-1 px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm" placeholder="https://www.elitc.com/product/..." />
+                        <button @onclick="AutofillCourse" disabled="@isScraping" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors border border-indigo-200">
+                            <span class="@(isScraping ? "" : "hidden") flex items-center gap-2">
+                                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                                <span>Scraping...</span>
+                            </span>
+                            <span class="@(isScraping ? "hidden" : "") flex items-center gap-2">
+                                <i data-lucide="wand-2" class="w-4 h-4"></i>
+                                <span>Autofill</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-span-2 space-y-1">
+                    <label class="text-sm font-semibold text-zinc-700">Synopsis</label>
+                    <textarea @bind="Course.Synopsis" rows="4" class="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-elitc-gold/20 outline-none text-sm"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-zinc-50 border-t border-zinc-100 flex items-center justify-end gap-3">
+            <button @onclick="CloseEditor" class="px-6 py-2.5 text-sm font-semibold text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/50 rounded-xl transition-all">Cancel</button>
+            <button @onclick="SaveEditor" class="bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-zinc-900/20 transition-all flex items-center gap-2">
+                <i data-lucide="save" class="w-4 h-4"></i> Save Course
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public Course Course { get; set; } = new();
+    [Parameter] public bool IsNewCourse { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<Course> OnSave { get; set; }
+
+    private bool isScraping = false;
+
+    private async Task AutofillCourse()
+    {
+        if (string.IsNullOrWhiteSpace(Course.Url)) return;
+        
+        isScraping = true;
+        StateHasChanged();
+        
+        var scrapedCourse = await ScraperService.ScrapeCourseAsync(Course.Url);
+        
+        // Update fields if they were successfully scraped
+        if (!string.IsNullOrEmpty(scrapedCourse.Title)) Course.Title = scrapedCourse.Title;
+        if (!string.IsNullOrEmpty(scrapedCourse.Category)) Course.Category = scrapedCourse.Category;
+        if (!string.IsNullOrEmpty(scrapedCourse.Level)) Course.Level = scrapedCourse.Level;
+        if (!string.IsNullOrEmpty(scrapedCourse.Duration)) Course.Duration = scrapedCourse.Duration;
+        if (!string.IsNullOrEmpty(scrapedCourse.TargetAudience)) Course.TargetAudience = scrapedCourse.TargetAudience;
+        if (!string.IsNullOrEmpty(scrapedCourse.Synopsis)) Course.Synopsis = scrapedCourse.Synopsis;
+
+        isScraping = false;
+        StateHasChanged();
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    private async Task CloseEditor()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private async Task SaveEditor()
+    {
+        await OnSave.InvokeAsync(Course);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+}
