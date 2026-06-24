@@ -59,6 +59,44 @@ public class DbService(ApplicationDbContext context, AuthenticationStateProvider
         }
     }
 
+    // --- Web Pages ---
+    public async Task<List<WebPageContent>> GetAllWebPagesAsync()
+    {
+        return await context.WebPages.ToListAsync();
+    }
+
+    public async Task<List<WebPageContent>> GetApprovedWebPagesAsync()
+    {
+        return await context.WebPages.Where(w => w.Status == "Approved").ToListAsync();
+    }
+
+    public async Task SaveWebPageAsync(WebPageContent page)
+    {
+        var existing = await context.WebPages.FindAsync(page.Id);
+        if (existing == null)
+        {
+            if (string.IsNullOrEmpty(page.Id)) page.Id = Guid.NewGuid().ToString();
+            context.WebPages.Add(page);
+        }
+        else
+        {
+            context.Entry(existing).CurrentValues.SetValues(page);
+        }
+        await SetAuditUserAsync();
+        await context.SaveChangesAsync();
+    }
+
+    public async Task DeleteWebPageAsync(string id)
+    {
+        var page = await context.WebPages.FindAsync(id);
+        if (page != null)
+        {
+            context.WebPages.Remove(page);
+            await SetAuditUserAsync();
+            await context.SaveChangesAsync();
+        }
+    }
+
     // --- Configs ---
     public async Task<List<Config>> GetAllConfigsAsync()
     {

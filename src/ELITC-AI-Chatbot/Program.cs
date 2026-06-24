@@ -45,6 +45,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<GeminiService>();
 builder.Services.AddScoped<RagService>();
 builder.Services.AddScoped<CourseScraperService>();
+builder.Services.AddScoped<WebCrawlerService>();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {

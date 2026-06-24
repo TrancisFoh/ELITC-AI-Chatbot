@@ -84,4 +84,40 @@ public class RagService
             .Take(limit)
             .ToList();
     }
+
+    public List<WebPageContent> RetrieveWebPages(string query, List<WebPageContent> webPages, int limit = 5)
+    {
+        var normalizedQuery = Regex.Replace(query.ToLowerInvariant(), @"[^\w\s]", "");
+        var tokens = normalizedQuery.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => token.Length > 1 && !StopWords.Contains(token))
+            .ToList();
+
+        if (!tokens.Any()) return new List<WebPageContent>();
+
+        var scoredPages = webPages.Select(page =>
+        {
+            int score = 0;
+            var titleLower = page.Title.ToLowerInvariant();
+            var contentLower = page.TextContent.ToLowerInvariant();
+
+            foreach (var token in tokens)
+            {
+                if (titleLower.Contains(token))
+                {
+                    score += 8;
+                    if (Regex.IsMatch(titleLower, $@"\b{Regex.Escape(token)}\b")) score += 4;
+                }
+                if (contentLower.Contains(token)) score += 2;
+            }
+
+            return new { Page = page, Score = score };
+        });
+
+        return scoredPages
+            .Where(x => x.Score > 0)
+            .OrderByDescending(x => x.Score)
+            .Select(x => x.Page)
+            .Take(limit)
+            .ToList();
+    }
 }

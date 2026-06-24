@@ -1,0 +1,214 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@inject DbService DbService
+@inject IJSRuntime JS
+
+<div class="space-y-6">
+    <!-- Sub-tabs Navigation -->
+    <div class="bg-white border border-zinc-200 rounded-xl p-1 flex gap-2 w-max shadow-sm">
+        <button @onclick="@(() => activeSubTab = "courses")" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all @(activeSubTab == "courses" ? "bg-zinc-900 text-white shadow" : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50")">
+            Structured Courses
+        </button>
+        <button @onclick="@(() => activeSubTab = "scraped")" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all @(activeSubTab == "scraped" ? "bg-zinc-900 text-white shadow" : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50")">
+            Scraped Web Data
+        </button>
+        <button @onclick="RunCrossCheck" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 @(activeSubTab == "report" ? "bg-zinc-900 text-white shadow" : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50")">
+            <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Cross-Check Report
+        </button>
+    </div>
+
+    @if (activeSubTab == "courses")
+    {
+        <CourseManager />
+    }
+    else if (activeSubTab == "scraped")
+    {
+        <KnowledgeManager />
+    }
+    else if (activeSubTab == "report" && hasRunCheck)
+    {
+        <div class="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-zinc-200 bg-zinc-50">
+                <h2 class="text-xl font-bold text-zinc-900">Database Cross-Check</h2>
+                <p class="text-sm text-zinc-500">Comparing your manually entered courses against the scraped website knowledge base.</p>
+            </div>
+
+            @if (isChecking)
+            {
+                <div class="p-12 text-center text-zinc-500 flex flex-col items-center">
+                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-2"></i>
+                    <p>Running cross-check algorithm...</p>
+                </div>
+            }
+            else
+            {
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-0 border-b border-zinc-200">
+                    <div class="p-6 border-r border-zinc-200">
+                        <div class="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Total DB Courses</div>
+                        <div class="text-3xl font-black text-zinc-900">@totalCourses</div>
+                    </div>
+                    <div class="p-6 border-r border-zinc-200 bg-emerald-50/50">
+                        <div class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">Found on Website</div>
+                        <div class="text-3xl font-black text-emerald-600">@scrapedCoursesCount</div>
+                    </div>
+                    <div class="p-6 border-r border-zinc-200 bg-rose-50/50">
+                        <div class="text-xs font-bold text-rose-600 uppercase tracking-wider mb-1">Missing / Unscraped</div>
+                        <div class="text-3xl font-black text-rose-600">@missingCoursesCount</div>
+                    </div>
+                    <div class="p-6 bg-amber-50/50">
+                        <div class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Unmapped Scraped</div>
+                        <div class="text-3xl font-black text-amber-600">@unmappedScrapedCoursesCount</div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <h3 class="font-bold text-lg text-zinc-900 mb-4">Courses Missing from Scraper</h3>
+                    @if (missingCourses == null || !missingCourses.Any())
+                    {
+                        <div class="p-6 text-center text-emerald-600 bg-emerald-50 rounded-xl border border-emerald-100">
+                            <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                            <p class="font-semibold">Excellent! All your database courses appear to be successfully scraped.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="overflow-hidden rounded-xl border border-zinc-200">
+                            <table class="w-full text-left text-sm text-zinc-600">
+                                <thead class="bg-zinc-50 text-xs uppercase font-semibold text-zinc-500 border-b border-zinc-100">
+                                    <tr>
+                                        <th class="px-4 py-3">Course Code</th>
+                                        <th class="px-4 py-3">Title</th>
+                                        <th class="px-4 py-3">Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-zinc-100">
+                                    @foreach (var course in missingCourses)
+                                    {
+                                        <tr class="hover:bg-zinc-50/50">
+                                            <td class="px-4 py-3 font-mono text-xs">@course.Id</td>
+                                            <td class="px-4 py-3 font-medium text-zinc-900">@course.Title</td>
+                                            <td class="px-4 py-3"><span class="px-2 py-1 bg-zinc-100 rounded-full text-[10px] font-semibold text-zinc-600">@course.Category</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <div class="p-6 pt-0">
+                    <h3 class="font-bold text-lg text-zinc-900 mb-4">Scraped Courses Missing from Database</h3>
+                    @if (unmappedScrapedCourses == null || !unmappedScrapedCourses.Any())
+                    {
+                        <div class="p-6 text-center text-emerald-600 bg-emerald-50 rounded-xl border border-emerald-100">
+                            <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                            <p class="font-semibold">Excellent! All scraped courses exist in your database.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="overflow-hidden rounded-xl border border-zinc-200">
+                            <table class="w-full text-left text-sm text-zinc-600">
+                                <thead class="bg-zinc-50 text-xs uppercase font-semibold text-zinc-500 border-b border-zinc-100">
+                                    <tr>
+                                        <th class="px-4 py-3">Page Title</th>
+                                        <th class="px-4 py-3">URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-zinc-100">
+                                    @foreach (var p in unmappedScrapedCourses)
+                                    {
+                                        <tr class="hover:bg-zinc-50/50">
+                                            <td class="px-4 py-3 font-medium text-zinc-900">@p.Title</td>
+                                            <td class="px-4 py-3 font-mono text-xs"><a href="@p.Url" target="_blank" class="text-blue-600 hover:underline">@p.Url</a></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string activeSubTab = "courses";
+    private bool isChecking = false;
+    private bool hasRunCheck = false;
+    
+    private int totalCourses = 0;
+    private int scrapedCoursesCount = 0;
+    private int missingCoursesCount = 0;
+    private List<Course> missingCourses = new();
+
+    private int unmappedScrapedCoursesCount = 0;
+    private List<WebPageContent> unmappedScrapedCourses = new();
+
+    private async Task RunCrossCheck()
+    {
+        activeSubTab = "report";
+        hasRunCheck = true;
+        isChecking = true;
+        StateHasChanged();
+
+        // Let UI update before heavy processing
+        await Task.Delay(100);
+
+        var allCourses = await DbService.GetAllCoursesAsync();
+        var allWebPages = await DbService.GetAllWebPagesAsync();
+        // Only consider Approved pages for cross-checking
+        var approvedPages = allWebPages.Where(p => p.Status == "Approved").ToList();
+
+        totalCourses = allCourses.Count;
+        var foundCourses = new List<Course>();
+        missingCourses = new List<Course>();
+
+        foreach (var course in allCourses)
+        {
+            // Match by URL first (most reliable), then fall back to title comparison
+            bool isFound = approvedPages.Any(p =>
+                (!string.IsNullOrWhiteSpace(course.Url) && p.Url.Equals(course.Url, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(course.Title) && p.Title.Contains(course.Title, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(course.Title) && course.Title.Contains(p.Title, StringComparison.OrdinalIgnoreCase))
+            );
+
+            if (isFound)
+                foundCourses.Add(course);
+            else
+                missingCourses.Add(course);
+        }
+
+        scrapedCoursesCount = foundCourses.Count;
+        missingCoursesCount = missingCourses.Count;
+
+        // Find scraped courses that aren't mapped
+        unmappedScrapedCourses = new List<WebPageContent>();
+        var scrapedCoursePages = approvedPages.Where(p => p.Label == "Course Relevant Information").ToList();
+        
+        foreach (var page in scrapedCoursePages)
+        {
+            bool isMapped = allCourses.Any(course => 
+                (!string.IsNullOrWhiteSpace(course.Url) && page.Url.Equals(course.Url, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(course.Title) && page.Title.Contains(course.Title, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(course.Title) && course.Title.Contains(page.Title, StringComparison.OrdinalIgnoreCase))
+            );
+
+            if (!isMapped)
+            {
+                unmappedScrapedCourses.Add(page);
+            }
+        }
+        unmappedScrapedCoursesCount = unmappedScrapedCourses.Count;
+        
+        isChecking = false;
+        StateHasChanged();
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+}

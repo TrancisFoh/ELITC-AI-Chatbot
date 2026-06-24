@@ -47,7 +47,7 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
         }
     }
 
-    public async IAsyncEnumerable<string> StreamChatAsync(List<ChatLog> history, string userMessage, string sessionId, List<Course>? relevantCourses = null)
+    public async IAsyncEnumerable<string> StreamChatAsync(List<ChatLog> history, string userMessage, string sessionId, List<Course>? relevantCourses = null, List<WebPageContent>? relevantPages = null)
     {
         if (string.IsNullOrEmpty(_apiKey))
         {
@@ -100,6 +100,14 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
             var courseContext = "Here are the relevant courses based on the user's inquiry:\n" +
                 JsonSerializer.Serialize(relevantCourses.Select(c => new { c.Title, c.Category, c.Synopsis, c.Level, c.TargetAudience, c.Duration, c.Url }));
             systemInstructionText += "\n\n" + courseContext;
+        }
+
+        // 2.5 Add relevant pages context if any
+        if (relevantPages != null && relevantPages.Any())
+        {
+            var pageContext = "Here is some additional relevant information from the website based on the user's inquiry:\n" +
+                JsonSerializer.Serialize(relevantPages.Select(p => new { p.Title, p.TextContent, p.Url }));
+            systemInstructionText += "\n\n" + pageContext;
         }
 
         // 3. Build the Request Payload for Gemini API
@@ -197,6 +205,45 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
             Content = fullResponse,
             Timestamp = timestamp + 1
         });
+    }
+
+    public async Task<string> RefineScrapedDataAsync(string content, string instruction)
+    {
+        if (string.IsNullOrEmpty(_apiKey)) return "Error: API key missing";
+
+        var systemPrompt = $"You are an expert data cleaner and editor. Refine the provided scraped web page content based on the following instruction: {instruction}. Return ONLY the refined content, keeping the same Markdown format. Do not add any conversational preamble.";
+
+        var requestPayload = new
+        {
+            systemInstruction = new
+            {
+                parts = new[] { new { text = systemPrompt } }
+            },
+            contents = new[] { new { role = "user", parts = new[] { new { text = content } } } },
+            generationConfig = new { temperature = 0.2 }
+        };
+
+        var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(requestPayload), System.Text.Encoding.UTF8, "application/json")
+        };
+
+        try
+        {
+            using var response = await _httpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(responseContent);
+                return doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString() ?? "";
+            }
+            return $"Error: API returned {(int)response.StatusCode}";
+        }
+        catch (Exception ex)
+        {
+            return $"Error: {ex.Message}";
+        }
     }
 
     public async Task<List<string>> GenerateSuggestedRepliesAsync(List<ChatLog> history)

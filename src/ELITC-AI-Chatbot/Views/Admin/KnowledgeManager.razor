@@ -1,0 +1,349 @@
+@using ELITC_AI_Chatbot.Models
+@using ELITC_AI_Chatbot.Controllers
+@implements IDisposable
+@inject DbService DbService
+@inject WebCrawlerService CrawlerService
+@inject GeminiService GeminiService
+@inject IJSRuntime JS
+
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-bold text-zinc-900">Knowledge Base Manager</h2>
+            <p class="text-sm text-zinc-500">Review and approve scraped website content before it's used by the AI.</p>
+        </div>
+        @if (isCrawling)
+        {
+            <button @onclick="StartCrawl" disabled class="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-2 text-sm font-medium transition-all">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                <span>Scraping Website...</span>
+            </button>
+        }
+        else
+        {
+            <button @onclick="StartCrawl" class="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-2 text-sm font-medium transition-all">
+                <i data-lucide="globe" class="w-4 h-4"></i>
+                <span>Sync Website</span>
+            </button>
+        }
+    </div>
+
+    @if (isCrawling && currentProgress != null)
+    {
+        <div class="p-4 bg-zinc-50 border border-zinc-200 rounded-xl shadow-sm">
+            <div class="flex justify-between text-sm mb-2 text-zinc-700">
+                <span class="font-medium truncate pr-4">Scraping: @currentProgress.CurrentUrl</span>
+                <span class="whitespace-nowrap font-mono">@currentProgress.Processed / @currentProgress.TotalDiscovered</span>
+            </div>
+            <div class="w-full bg-zinc-200 rounded-full h-2.5 overflow-hidden">
+                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: @(currentProgress.TotalDiscovered > 0 ? (currentProgress.Processed * 100 / currentProgress.TotalDiscovered) : 0)%"></div>
+            </div>
+        </div>
+    }
+
+    @if (finalReport != null && !isCrawling)
+    {
+        <div class="p-6 bg-blue-50 border border-blue-200 rounded-xl relative shadow-sm">
+            <button @onclick="CloseReport" class="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="font-bold text-lg text-blue-900 mb-4 flex items-center gap-2">
+                <i data-lucide="check-circle-2" class="text-emerald-500 w-5 h-5"></i>
+                Scraping Complete!
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm flex flex-col justify-center">
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Total Pages</div>
+                    <div class="text-2xl font-black text-zinc-900">@finalReport.PagesScraped</div>
+                </div>
+                <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm flex flex-col justify-center">
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Confidence</div>
+                    <div class="text-2xl font-black text-emerald-600">@finalReport.OverallConfidence%</div>
+                </div>
+                <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm flex flex-col justify-center">
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">Course Data</div>
+                    <div class="text-2xl font-black text-blue-600">@finalReport.CoursePagesCount</div>
+                </div>
+                <div class="bg-white p-3 rounded-lg border border-blue-100 shadow-sm flex flex-col justify-center">
+                    <div class="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1">General Data</div>
+                    <div class="text-2xl font-black text-indigo-600">@finalReport.GeneralPagesCount</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (pages == null)
+    {
+        <div class="p-8 text-center"><i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-zinc-400"></i></div>
+    }
+    else if (!pages.Any())
+    {
+        <div class="p-8 text-center bg-white rounded-xl border border-zinc-200">
+            <p class="text-zinc-500">No web pages found in the knowledge base.</p>
+            <button @onclick="StartCrawl" class="mt-4 px-4 py-2 bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200 text-sm font-medium transition-all">Start your first sync</button>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- List of Pages -->
+            <div class="lg:col-span-1 bg-white border border-zinc-200 rounded-xl overflow-hidden flex flex-col h-[600px]">
+                <div class="p-4 border-b border-zinc-200 bg-zinc-50 flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-semibold text-sm">Scraped Pages</h3>
+                        <span class="text-xs bg-zinc-200 text-zinc-600 px-2 py-1 rounded-full font-medium">@pages.Count Total</span>
+                    </div>
+                    <div class="relative w-full">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"></i>
+                        <input type="text" @bind="searchTerm" @bind:event="oninput" placeholder="Search pages..." class="w-full pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none" />
+                    </div>
+                </div>
+                <div class="overflow-y-auto flex-1 p-2 space-y-1">
+                    @if (filteredPages.Any())
+                    {
+                        @foreach (var p in filteredPages)
+                        {
+                            <button @onclick="() => SelectPage(p)" class="w-full text-left p-3 rounded-lg transition-all @(selectedPage?.Id == p.Id ? "bg-blue-50 border-blue-200" : "hover:bg-zinc-50 border-transparent") border">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-medium text-sm truncate pr-2 @(selectedPage?.Id == p.Id ? "text-blue-700" : "text-zinc-900")">@p.Title</span>
+                                    @if (p.Status == "Approved")
+                                    {
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></span>
+                                    }
+                                    else if (p.Status == "Pending")
+                                    {
+                                        <span class="w-2 h-2 rounded-full bg-amber-400 mt-1 flex-shrink-0 animate-pulse"></span>
+                                    }
+                                </div>
+                                <div class="text-xs text-zinc-500 truncate mb-1.5">@p.Url</div>
+                                @if (!string.IsNullOrEmpty(p.Label))
+                                {
+                                    <div class="text-[10px] px-2 py-0.5 rounded-full inline-block font-semibold @(p.Label.Contains("Course") ? "bg-blue-100 text-blue-700" : (p.Label.Contains("Consulting") ? "bg-purple-100 text-purple-700" : "bg-zinc-100 text-zinc-600"))">
+                                        @p.Label
+                                    </div>
+                                }
+                            </button>
+                        }
+                    }
+                    else
+                    {
+                        <div class="p-8 text-center text-zinc-400 text-sm">
+                            <p>No pages match your search.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Detail / Refinement View -->
+            <div class="lg:col-span-2 bg-white border border-zinc-200 rounded-xl flex flex-col h-[600px]">
+                @if (selectedPage != null)
+                {
+                    <div class="p-4 border-b border-zinc-200 flex justify-between items-center bg-zinc-50">
+                        <div class="overflow-hidden">
+                            <h3 class="font-bold text-zinc-900 truncate">@selectedPage.Title</h3>
+                            <a href="@selectedPage.Url" target="_blank" class="text-xs text-blue-600 hover:underline truncate block mb-2">@selectedPage.Url</a>
+                            <select @bind="selectedPage.Label" @bind:after="SaveContent" class="text-xs border border-zinc-300 rounded-md px-2 py-1 bg-white text-zinc-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer shadow-sm">
+                                <option value="General Information">General Information</option>
+                                <option value="Course Relevant Information">Course Relevant Information</option>
+                                <option value="Consulting Information">Consulting Information</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            @if (selectedPage.Status == "Pending")
+                            {
+                                <button @onclick="ApprovePage" class="px-3 py-1.5 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 text-sm font-medium transition-all flex items-center gap-1.5">
+                                    <i data-lucide="check" class="w-4 h-4"></i> Approve
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="UnapprovePage" class="px-3 py-1.5 bg-zinc-200 text-zinc-700 rounded-md hover:bg-zinc-300 text-sm font-medium transition-all flex items-center gap-1.5">
+                                    <i data-lucide="x" class="w-4 h-4"></i> Revoke
+                                </button>
+                            }
+                            <button @onclick="DeletePage" class="px-3 py-1.5 bg-rose-100 text-rose-600 rounded-md hover:bg-rose-200 text-sm font-medium transition-all">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-hidden flex flex-col">
+                        <div class="p-4 flex-1 overflow-y-auto">
+                            <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Content Editor (Auto-Saves on Edit)</label>
+                            <textarea @bind="selectedPage.TextContent" @bind:after="SaveContent" class="w-full h-full min-h-[300px] p-3 text-sm font-mono bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"></textarea>
+                        </div>
+                        
+                        <div class="p-4 border-t border-zinc-200 bg-zinc-50">
+                            <label class="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 flex justify-between">
+                                <span>AI Refinement Chatbox</span>
+                                @if (isRefining)
+                                {
+                                    <span class="text-blue-500 flex items-center gap-1"><i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> AI is thinking...</span>
+                                }
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text" @bind="aiInstruction" @bind:event="oninput" @onkeyup="HandleKeyUp" disabled="@isRefining" placeholder="e.g., 'Remove the footer text' or 'Format as a bulleted list'" class="flex-1 px-3 py-2 text-sm border border-zinc-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50" />
+                                <button @onclick="RefineWithAI" disabled="@(isRefining || string.IsNullOrWhiteSpace(aiInstruction))" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium transition-all flex items-center gap-2">
+                                    <i data-lucide="wand-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex-1 flex flex-col items-center justify-center text-zinc-400 p-8">
+                        <i data-lucide="file-text" class="w-12 h-12 mb-4 opacity-20"></i>
+                        <p>Select a page from the list to review and refine.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<WebPageContent>? pages;
+    private WebPageContent? selectedPage;
+    private string searchTerm = "";
+    
+    private IEnumerable<WebPageContent> filteredPages => pages?
+        .Where(p => string.IsNullOrWhiteSpace(searchTerm) || 
+                    p.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) || 
+                    p.Url.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ?? Enumerable.Empty<WebPageContent>();
+    private bool isCrawling = false;
+    private bool isRefining = false;
+    private string aiInstruction = "";
+    private bool isDisposed = false;
+    private CrawlProgress? currentProgress;
+    private CrawlReport? finalReport;
+
+    public void Dispose()
+    {
+        isDisposed = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPages();
+    }
+
+    private async Task LoadPages()
+    {
+        pages = await DbService.GetAllWebPagesAsync();
+        pages = pages.OrderBy(p => p.Status == "Pending" ? 0 : 1).ThenBy(p => p.Title).ToList();
+        if (selectedPage != null)
+        {
+            selectedPage = pages.FirstOrDefault(p => p.Id == selectedPage.Id);
+        }
+    }
+
+    private void SelectPage(WebPageContent page)
+    {
+        selectedPage = page;
+        aiInstruction = "";
+    }
+
+    private async Task SaveContent()
+    {
+        if (selectedPage != null)
+        {
+            await DbService.SaveWebPageAsync(selectedPage);
+        }
+    }
+
+    private async Task StartCrawl()
+    {
+        isCrawling = true;
+        currentProgress = null;
+        finalReport = null;
+        StateHasChanged();
+        
+        var progress = new Progress<CrawlProgress>(p =>
+        {
+            currentProgress = p;
+            StateHasChanged();
+        });
+
+        finalReport = await CrawlerService.CrawlWebsiteAsync(progress);
+        
+        if (isDisposed) return; // Stop if the user navigated away during the crawl
+        
+        await LoadPages();
+        
+        isCrawling = false;
+        StateHasChanged();
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    private void CloseReport()
+    {
+        finalReport = null;
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !isRefining && !string.IsNullOrWhiteSpace(aiInstruction))
+        {
+            await RefineWithAI();
+        }
+    }
+
+    private async Task RefineWithAI()
+    {
+        if (selectedPage == null || string.IsNullOrWhiteSpace(aiInstruction)) return;
+
+        isRefining = true;
+        StateHasChanged();
+
+        var result = await GeminiService.RefineScrapedDataAsync(selectedPage.TextContent, aiInstruction);
+        if (!result.StartsWith("Error:"))
+        {
+            selectedPage.TextContent = result;
+            await DbService.SaveWebPageAsync(selectedPage);
+            aiInstruction = "";
+        }
+
+        isRefining = false;
+        StateHasChanged();
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+
+    private async Task ApprovePage()
+    {
+        if (selectedPage != null)
+        {
+            selectedPage.Status = "Approved";
+            await DbService.SaveWebPageAsync(selectedPage);
+            await LoadPages();
+            StateHasChanged();
+        }
+    }
+
+    private async Task UnapprovePage()
+    {
+        if (selectedPage != null)
+        {
+            selectedPage.Status = "Pending";
+            await DbService.SaveWebPageAsync(selectedPage);
+            await LoadPages();
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeletePage()
+    {
+        if (selectedPage != null)
+        {
+            await DbService.DeleteWebPageAsync(selectedPage.Id);
+            selectedPage = null;
+            await LoadPages();
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("chatInterop.initIcons");
+    }
+}

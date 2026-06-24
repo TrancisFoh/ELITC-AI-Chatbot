@@ -59,3 +59,16 @@ public class AuditLog
     public string Changes { get; set; } = string.Empty;
     public long Timestamp { get; set; }
 }
+
+public class WebPageContent
+{
+    [Key]
+    public string Id { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string TextContent { get; set; } = string.Empty;
+    public string Status { get; set; } = "Pending";
+    public long LastScraped { get; set; }
+    public string Label { get; set; } = string.Empty;
+}
+

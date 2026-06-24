@@ -29,11 +29,11 @@
         </div>
 
         <nav class="flex-1 space-y-2">
-            @if (isAdmin || allowedTabs.Contains("courses"))
+            @if (isAdmin || allowedTabs.Contains("database") || allowedTabs.Contains("courses") || allowedTabs.Contains("knowledge"))
             {
-                <button @onclick="@(() => activeTab = "courses")" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm @(activeTab == "courses" ? "bg-white text-zinc-900 shadow-md" : "hover:bg-zinc-900 hover:text-white")">
-                    <i data-lucide="book-open" class="w-4 h-4"></i>
-                    Courses
+                <button @onclick="@(() => activeTab = "database")" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm @(activeTab == "database" ? "bg-white text-zinc-900 shadow-md" : "hover:bg-zinc-900 hover:text-white")">
+                    <i data-lucide="database" class="w-4 h-4"></i>
+                    Database
                 </button>
             }
             @if (isAdmin || allowedTabs.Contains("config"))
@@ -129,7 +129,7 @@
     <main class="flex-1 lg:ml-64 p-6 lg:p-10 min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-zinc-100/50 via-white to-white">
         <header class="mb-10">
             <h1 class="text-3xl font-bold text-zinc-900 tracking-tight">
-                @(activeTab == "courses" ? "Course Catalog" : 
+                @(activeTab == "database" ? "Unified Database" : 
                   activeTab == "config" ? "Bot Configuration" : 
                   activeTab == "appearance" ? "Bot Appearance" : 
                   activeTab == "system" ? "System Metrics" : 
@@ -143,9 +143,9 @@
 
         @if (!isInitializing)
         {
-            if ((isAdmin || allowedTabs.Contains("courses")) && activeTab == "courses")
+            if ((isAdmin || allowedTabs.Contains("database") || allowedTabs.Contains("courses") || allowedTabs.Contains("knowledge")) && activeTab == "database")
             {
-                <CourseManager />
+                <DatabaseManager />
             }
             else if ((isAdmin || allowedTabs.Contains("config")) && activeTab == "config")
             {
@@ -186,7 +186,7 @@
 </div>
 
 @code {
-    private string activeTab = "courses";
+    private string activeTab = "database";
     private bool isChatbotHealthy = false;
     private bool isCheckingHealth = true;
     private string chatbotStatusMessage = "Checking...";

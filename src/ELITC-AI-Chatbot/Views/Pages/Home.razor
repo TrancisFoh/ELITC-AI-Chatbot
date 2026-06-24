@@ -15,6 +15,7 @@
 
 <!-- Background Website Preview -->
 <iframe id="bg-iframe" src="https://www.elitc.com/" class="fixed inset-0 w-full h-full border-none z-0 pointer-events-auto"></iframe>
+<button id="minimize-chat-btn" @onclick="() => isExpanded = false" class="hidden"></button>
 
 <div class="font-sans selection:bg-elitc-gold/30 relative z-10">
     <div class="fixed inset-0 z-40 transition-all duration-500 pointer-events-none @(isOpen ? "opacity-100" : "opacity-0")">
@@ -57,7 +58,8 @@
                         Timestamp="@DateTimeOffset.FromUnixTimeMilliseconds(msg.Timestamp).LocalDateTime" 
                         RelatedCourses="@msg.RelatedCourses"
                         IsLoading="false"
-                        BotAvatar="@botAvatar" />
+                        BotAvatar="@botAvatar"
+                        OnCourseViewed="HandleCourseViewed" />
                 }
                 
                 @if (isLoading)
@@ -81,7 +83,16 @@
 
     <div class="fixed bottom-6 left-6 z-50">
         <button @onclick="ToggleOpen" 
-                class="w-14 h-14 bg-[#DBAC35] rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all text-zinc-900 border-2 border-white/20 group hover:shadow-[#DBAC35]/40 hover:border-white">
+                class="relative w-14 h-14 bg-[#DBAC35] rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all text-zinc-900 border-2 border-white/20 group hover:shadow-[#DBAC35]/40 hover:border-white">
+            
+            @if (!isOpen && !messages.Any())
+            {
+                <span class="absolute top-0 right-0 -mt-0.5 -mr-0.5 flex h-3.5 w-3.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-red-600 border-[1.5px] border-white"></span>
+                </span>
+            }
+
             @if (isOpen)
             {
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -107,7 +118,7 @@
     private List<ChatLog> messages = new();
     
     private bool showScrollAssist = false;
-    private List<string> defaultReplies = new() { "What courses do you offer?", "How do I sign up?", "What are the prerequisites?" };
+    private List<string> defaultReplies = new() { "What courses do you offer?", "What is ELITC?", "Where are you guys at?" };
     private List<string> currentSuggestedReplies = new();
 
     private string? botAvatar;
@@ -137,6 +148,14 @@
                 Content = $"Hey there! 👋 I'm your **{botName}**, here to help you find the perfect training course for your career goals. Whether you're looking into **WSQ certifications**, **IPC training**, or **AI & digital skills** — I've got you covered!\n\nWhat can I help you with today? 🎯",
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             });
+        }
+    }
+
+    private void HandleCourseViewed(string url)
+    {
+        if (isExpanded)
+        {
+            isExpanded = false;
         }
     }
 
@@ -191,7 +210,11 @@
             var allCourses = await DbService.GetAllCoursesAsync();
             var relevantCourses = RagService.RetrieveCourses(message, allCourses);
 
-            await foreach (var chunk in GeminiService.StreamChatAsync(messages, message, sessionId, relevantCourses))
+            var allPages = await DbService.GetAllWebPagesAsync();
+            var approvedPages = allPages.Where(p => p.Status == "Approved").ToList();
+            var relevantPages = RagService.RetrieveWebPages(message, approvedPages);
+
+            await foreach (var chunk in GeminiService.StreamChatAsync(messages, message, sessionId, relevantCourses, relevantPages))
             {
                 currentStreamingResponse = chunk;
                 await ScrollToBottom();

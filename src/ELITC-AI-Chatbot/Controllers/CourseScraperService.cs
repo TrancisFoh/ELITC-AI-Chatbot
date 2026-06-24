@@ -120,7 +120,7 @@ public class CourseScraperService
             var codeMatch = Regex.Match(pageText, @"(?:Course\s*)?Code\s*[:\-]\s*([A-Za-z0-9\-]+)", RegexOptions.IgnoreCase);
             if (codeMatch.Success)
             {
-                course.Level = codeMatch.Groups[1].Value.Trim(); // Using Level field for Course Code
+                course.Id = codeMatch.Groups[1].Value.Trim();
             }
 
             // Duration

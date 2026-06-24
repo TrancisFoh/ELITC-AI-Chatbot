@@ -11,7 +11,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ChatLog> ChatLogs { get; set; } = default!;
     public DbSet<ErrorLog> ErrorLogs { get; set; } = default!;
     public DbSet<AuditLog> AuditLogs { get; set; } = default!;
-
+    public DbSet<WebPageContent> WebPages { get; set; } = default!;
     public string CurrentUserId { get; set; } = "System";
     public string CurrentUsername { get; set; } = "System";
 

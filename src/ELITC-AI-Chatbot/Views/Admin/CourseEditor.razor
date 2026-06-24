@@ -86,6 +86,7 @@
         
         // Update fields if they were successfully scraped
         if (!string.IsNullOrEmpty(scrapedCourse.Title)) Course.Title = scrapedCourse.Title;
+        if (IsNewCourse && !string.IsNullOrEmpty(scrapedCourse.Id)) Course.Id = scrapedCourse.Id;
         if (!string.IsNullOrEmpty(scrapedCourse.Category)) Course.Category = scrapedCourse.Category;
         if (!string.IsNullOrEmpty(scrapedCourse.Level)) Course.Level = scrapedCourse.Level;
         if (!string.IsNullOrEmpty(scrapedCourse.Duration)) Course.Duration = scrapedCourse.Duration;

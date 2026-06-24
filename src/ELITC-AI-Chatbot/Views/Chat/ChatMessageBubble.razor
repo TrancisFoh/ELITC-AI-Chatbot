@@ -32,7 +32,7 @@
                 else
                 {
                     <div class="prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-800 prose-pre:text-zinc-100 @(IsUser ? "prose-invert prose-p:text-white" : "")">
-                        @((MarkupString)Markdown.ToHtml(Content ?? "", pipeline))
+                        @((MarkupString)GetRenderedHtml())
                     </div>
                 }
             </div>
@@ -40,7 +40,7 @@
             @if (!IsUser && RelatedCourses != null && RelatedCourses.Any())
             {
                 <div class="mt-3 w-full min-w-0 relative">
-                    <CourseCarousel Courses="@RelatedCourses" />
+                    <CourseCarousel Courses="@RelatedCourses" OnCourseViewed="HandleCourseView" />
                 </div>
             }
             
@@ -58,6 +58,37 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public List<Course>? RelatedCourses { get; set; }
     [Parameter] public string? BotAvatar { get; set; }
+    [Parameter] public EventCallback<string> OnCourseViewed { get; set; }
 
     private static MarkdownPipeline pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
+    private async Task HandleCourseView(string url)
+    {
+        if (OnCourseViewed.HasDelegate)
+        {
+            await OnCourseViewed.InvokeAsync(url);
+        }
+    }
+
+    private string GetRenderedHtml()
+    {
+        if (string.IsNullOrEmpty(Content)) return "";
+        
+        // Ensure any raw URLs that aren't already markdown links are converted
+        var contentWithLinks = System.Text.RegularExpressions.Regex.Replace(
+            Content, 
+            @"(?<!\]\()(?<!="")(https?:\/\/[^\s<]+)", 
+            "[$1]($1)"
+        );
+
+        var html = Markdown.ToHtml(contentWithLinks, pipeline);
+        
+        // Find all <a href="URL"> and replace with the JS code to load in iframe and minimize
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"<a\s+href=""([^""]+)""",
+            "<a href=\"javascript:void(0);\" onclick=\"document.getElementById('bg-iframe').src='$1'; document.getElementById('minimize-chat-btn')?.click();\" class=\"text-blue-600 hover:text-blue-800 underline font-semibold\""
+        );
+        return html;
+    }
 }

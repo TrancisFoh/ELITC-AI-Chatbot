@@ -1,4 +1,5 @@
 @using ELITC_AI_Chatbot.Models
+@inject IJSRuntime JS
 
 @if (Courses != null && Courses.Any())
 {
@@ -31,7 +32,7 @@
                         
                         <div class="border-t border-dashed border-zinc-200 my-2"></div>
                         
-                        <button type="button" onclick="document.getElementById('bg-iframe').src='@course.Url'" class="mt-2 block w-full text-center text-[13px] font-bold text-elitc-blue hover:text-blue-800 transition-colors">
+                        <button type="button" @onclick="() => HandleCourseView(course.Url)" class="mt-2 block w-full text-center text-[13px] font-bold text-elitc-blue hover:text-blue-800 transition-colors">
                             View Course &rarr;
                         </button>
                     </div>
@@ -51,4 +52,16 @@
 @code {
     [Parameter]
     public List<Course>? Courses { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnCourseViewed { get; set; }
+
+    private async Task HandleCourseView(string url)
+    {
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('bg-iframe').src='{url}'");
+        if (OnCourseViewed.HasDelegate)
+        {
+            await OnCourseViewed.InvokeAsync(url);
+        }
+    }
 }
