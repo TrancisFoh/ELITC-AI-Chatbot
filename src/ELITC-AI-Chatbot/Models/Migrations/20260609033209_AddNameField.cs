@@ -10,12 +10,11 @@ namespace ELITC_AI_Chatbot.Models.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Name",
-                table: "AspNetUsers",
-                type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
+            migrationBuilder.Sql(@"
+                IF NOT EXISTS(SELECT 1 FROM sys.columns WHERE Name = N'Name' AND Object_ID = Object_ID(N'AspNetUsers'))
+                BEGIN
+                    ALTER TABLE [AspNetUsers] ADD [Name] nvarchar(max) NOT NULL DEFAULT N'';
+                END");
         }
 
         /// <inheritdoc />

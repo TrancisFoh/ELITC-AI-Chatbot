@@ -14,7 +14,7 @@
 <PageTitle>@(botName)</PageTitle>
 
 <!-- Background Website Preview -->
-<iframe id="bg-iframe" src="https://www.elitc.com/" class="fixed inset-0 w-full h-full border-none z-0 pointer-events-auto"></iframe>
+<iframe id="bg-iframe" src="https://www.elitc.com/" class="fixed inset-0 w-full h-full border-none z-0 pointer-events-auto" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
 <button id="minimize-chat-btn" @onclick="() => isExpanded = false" class="hidden"></button>
 
 <div class="font-sans selection:bg-elitc-gold/30 relative z-10">
@@ -85,7 +85,7 @@
         <button @onclick="ToggleOpen" 
                 class="relative w-14 h-14 bg-[#DBAC35] rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all text-zinc-900 border-2 border-white/20 group hover:shadow-[#DBAC35]/40 hover:border-white">
             
-            @if (!isOpen && !messages.Any())
+            @if (!isOpen)
             {
                 <span class="absolute top-0 right-0 -mt-0.5 -mr-0.5 flex h-3.5 w-3.5">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

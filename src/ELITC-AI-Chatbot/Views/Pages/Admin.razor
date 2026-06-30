@@ -10,7 +10,6 @@
 @inject GeminiService GeminiService
 @inject DbService DbService
 @inject AuthenticationStateProvider AuthStateProvider
-@inject GeminiService GeminiService
 @rendermode InteractiveServer
 
 <PageTitle>Admin Dashboard</PageTitle>
@@ -19,12 +18,12 @@
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 h-full w-64 bg-zinc-950 text-zinc-400 p-4 flex flex-col hidden lg:flex border-r border-zinc-800">
         <div class="flex items-center gap-3 px-2 mb-8 mt-2">
-            <div class="w-10 h-10 bg-elitc-gold/20 rounded-xl flex items-center justify-center border border-elitc-gold/30 overflow-hidden">
+            <div class="w-10 h-10 shrink-0 bg-elitc-gold/20 rounded-xl flex items-center justify-center border border-elitc-gold/30 overflow-hidden">
                 <img src="/images/profile-pic.jpg" alt="Profile Picture" class="w-full h-full object-cover" />
             </div>
-            <div>
-                <h1 class="text-white font-bold text-sm tracking-wide uppercase">Hello, @(string.IsNullOrWhiteSpace(currentUser?.FullName) ? currentUser?.UserName : currentUser?.FullName)</h1>
-                <p class="text-xs text-zinc-500 font-medium">System Administration</p>
+            <div class="min-w-0 flex-1">
+                <h1 class="text-white font-bold text-sm tracking-wide uppercase truncate" title="Hello, @(string.IsNullOrWhiteSpace(currentUser?.FullName) ? currentUser?.UserName : currentUser?.FullName)">Hello, @(string.IsNullOrWhiteSpace(currentUser?.FullName) ? currentUser?.UserName : currentUser?.FullName)</h1>
+                <p class="text-xs text-zinc-500 font-medium truncate">System Administration</p>
             </div>
         </div>
 

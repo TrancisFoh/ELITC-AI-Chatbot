@@ -66,8 +66,7 @@
             </div>
 
             <div class="flex items-center gap-2 pt-1">
-                <input type="checkbox" id="showPasswordsToggle"
-                    onclick="var t=this.checked?'text':'password';document.getElementById('Input.OldPassword').type=t;document.getElementById('Input.NewPassword').type=t;document.getElementById('Input.ConfirmPassword').type=t;"
+                <input type="checkbox" id="showPasswordsToggle" @onchange="TogglePasswordVisibility"
                     class="w-4 h-4 text-emerald-500 border-zinc-300 rounded focus:ring-emerald-500 cursor-pointer" />
                 <label for="showPasswordsToggle"
                     class="text-sm text-zinc-600 font-medium cursor-pointer select-none">Show passwords</label>
@@ -86,6 +85,12 @@
 
     private ApplicationUser? user;
 
+    private async Task TogglePasswordVisibility(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)(e.Value ?? false);
+        await JS.InvokeVoidAsync("toggleMultiplePasswordVisibility", "Input.OldPassword", "Input.NewPassword", "Input.ConfirmPassword", isChecked);
+    }
+
 
 
     [CascadingParameter]
@@ -100,111 +105,63 @@
 
 
 
-    protected override async Task OnInitializedAsync()
+        [SupplyParameterFromQuery]
+        private string? ReturnUrl { get; set; }
 
-    {
-
-        Input ??= new();
-
-
-
-        user = await UserManager.GetUserAsync(HttpContext.User);
-
-        if (user is null)
-
+        protected override async Task OnInitializedAsync()
         {
+            Input ??= new();
 
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+            user = await UserManager.GetUserAsync(HttpContext.User);
+            if (user is null)
+            {
+                RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+                return;
+            }
 
-            return;
-
+            var hasPassword = await UserManager.HasPasswordAsync(user);
+            if (!hasPassword)
+            {
+                RedirectManager.RedirectTo("Account/Manage/SetPassword");
+            }
         }
 
-
-
-        var hasPassword = await UserManager.HasPasswordAsync(user);
-
-        if (!hasPassword)
-
+        protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-
-            RedirectManager.RedirectTo("Account/Manage/SetPassword");
-
+            if (firstRender)
+            {
+                await JS.InvokeVoidAsync("chatInterop.initIcons");
+            }
         }
 
-    }
-
-
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-
-    {
-
-        if (firstRender)
-
+        private async Task OnValidSubmitAsync()
         {
+            if (user is null)
+            {
+                RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
+                return;
+            }
 
-            await JS.InvokeVoidAsync("chatInterop.initIcons");
+            var changePasswordResult = await UserManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);
+            if (!changePasswordResult.Succeeded)
+            {
+                errorMessage = string.Join(" ", changePasswordResult.Errors.Select(error => error.Description));
+                return;
+            }
 
+            await SignInManager.RefreshSignInAsync(user);
+
+            Logger.LogInformation("User set their first-time password successfully.");
+
+            var claims = await UserManager.GetClaimsAsync(user);
+            var requireChangeClaim = claims.FirstOrDefault(c => c.Type == "RequirePasswordChange");
+            if (requireChangeClaim != null)
+            {
+                await UserManager.RemoveClaimAsync(user, requireChangeClaim);
+            }
+
+            RedirectManager.RedirectTo("/Account/FirstTime2FA", new() { ["returnUrl"] = ReturnUrl ?? "/admin" });
         }
-
-    }
-
-
-
-    private async Task OnValidSubmitAsync()
-
-    {
-
-        if (user is null)
-
-        {
-
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
-
-            return;
-
-        }
-
-
-
-        var changePasswordResult = await UserManager.ChangePasswordAsync(user, Input.OldPassword, Input.NewPassword);
-
-        if (!changePasswordResult.Succeeded)
-
-        {
-
-            errorMessage = string.Join(" ", changePasswordResult.Errors.Select(error => error.Description));
-
-            return;
-
-        }
-
-
-
-        await SignInManager.RefreshSignInAsync(user);
-
-        Logger.LogInformation("User set their first-time password successfully.");
-
-
-
-        var claims = await UserManager.GetClaimsAsync(user);
-
-        var requireChangeClaim = claims.FirstOrDefault(c => c.Type == "RequirePasswordChange");
-
-        if (requireChangeClaim != null)
-
-        {
-
-            await UserManager.RemoveClaimAsync(user, requireChangeClaim);
-
-        }
-
-
-
-        RedirectManager.RedirectTo("/admin");
-
-    }
 
 
 

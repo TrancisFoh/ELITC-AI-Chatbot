@@ -12,7 +12,7 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
     private readonly string _apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? config["GEMINI_API_KEY"] ?? "";
 
     // We will use gemini-1.5-flash-latest as the default model
-    private readonly string _model = "gemini-3.1-flash-lite";
+    private readonly string _model = "gemini-3.1-flash-lite"; // Chosen for a balance of cost-efficiency and response speed.
 
     /// <summary>
     /// Checks if the Gemini API is reachable and the API key is valid.
@@ -56,6 +56,7 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
         }
 
         // 1. Fetch System Prompt from DB
+        // CONSIDERATION: For high-traffic scenarios, caching this system prompt in memory (e.g., using IMemoryCache) could reduce database load if the prompt changes infrequently.
         var configs = await _dbService.GetAllConfigsAsync();
         var systemPromptConfig = configs.FirstOrDefault(c => c.Key == "SYSTEM_PROMPT");
         var defaultPrompt = """
@@ -187,6 +188,7 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
         }
 
         // 4. Log the interaction to DB
+        // CONSIDERATION: For highly concurrent scenarios, consider using GUIDs or database-generated IDs for ChatLog to ensure absolute uniqueness.
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         await _dbService.SaveChatLogAsync(new ChatLog
         {
@@ -242,6 +244,14 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
         }
         catch (Exception ex)
         {
+            await _dbService.SaveErrorLogAsync(new ErrorLog
+            {
+                Id = $"ERR-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+                SessionId = "N/A", // Session ID not available in this context
+                ErrorMessage = $"Gemini API Error (RefineScrapedDataAsync): {ex.Message}",
+                Component = "GeminiService.RefineScrapedDataAsync",
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
             return $"Error: {ex.Message}";
         }
     }
@@ -250,7 +260,7 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
     {
         if (string.IsNullOrEmpty(_apiKey)) return new List<string>();
 
-        var systemPrompt = "Based on the conversation history, generate exactly 3 short, relevant follow-up questions or statements the user might naturally say next. Respond ONLY with a raw JSON array of 3 strings. Keep them under 6 words each. Example: [\"Tell me more about the WSQ courses.\", \"What is the cost?\", \"Can I talk to a human?\"]";
+        var systemPrompt = "Based on the conversation history, generate exactly 3 short, relevant follow-up questions or statements that the USER could click to reply to the assistant. These must be written strictly from the USER'S perspective (e.g., 'I am a Singaporean', 'It is for my company', 'Show me AI courses'). Do NOT generate questions for the assistant to ask. Respond ONLY with a raw JSON array of 3 strings. Keep them under 6 words each. Example: [\"Tell me more about WSQ.\", \"What is the cost?\", \"I am a Singaporean.\"]";
 
         var requestPayload = new
         {
@@ -283,8 +293,16 @@ public class GeminiService(HttpClient httpClient, DbService dbService, IConfigur
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            await _dbService.SaveErrorLogAsync(new ErrorLog
+            {
+                Id = $"ERR-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+                SessionId = "N/A", // Session ID not available in this context
+                ErrorMessage = $"Gemini API Error (GenerateSuggestedRepliesAsync): {ex.Message}",
+                Component = "GeminiService.GenerateSuggestedRepliesAsync",
+                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
             // fallback gracefully
         }
         return new List<string>();

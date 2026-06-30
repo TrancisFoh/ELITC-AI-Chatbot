@@ -7,6 +7,7 @@
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IJSRuntime JS
 
 <PageTitle>Log in - Admin Portal</PageTitle>
 
@@ -44,7 +45,7 @@
 
             <div class="flex items-center justify-between pt-1">
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="showPasswordToggle" onclick="var p=document.getElementById('passwordInput');p.type=this.checked?'text':'password';" class="w-4 h-4 text-elitc-gold border-zinc-300 rounded focus:ring-elitc-gold" />
+                    <input type="checkbox" id="showPasswordToggle" @onchange="TogglePasswordVisibility" class="w-4 h-4 text-elitc-gold border-zinc-300 rounded focus:ring-elitc-gold" />
                     <label for="showPasswordToggle" class="text-sm text-zinc-600 font-medium cursor-pointer">Show password</label>
                 </div>
                 <a href="Account/ForgotPassword" class="text-sm text-zinc-400 hover:text-elitc-gold transition-colors">Forgot password?</a>
@@ -78,6 +79,12 @@
 @code {
     private string? errorMessage;
     private EditContext editContext = default!;
+
+    private async Task TogglePasswordVisibility(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)(e.Value ?? false);
+        await JS.InvokeVoidAsync("togglePasswordVisibility", "passwordInput", isChecked);
+    }
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -126,7 +133,7 @@
             {
                 return;
             }
-            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: false);
+            result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: false, lockoutOnFailure: false); // CONSIDERATION: lockoutOnFailure is set to false. Review Identity configuration for appropriate lockout policies to mitigate brute-force attacks.
         }
 
         if (result.Succeeded)
@@ -145,6 +152,14 @@
                 if (claims.Any(c => c.Type == "RequirePasswordChange" && c.Value == "true"))
                 {
                     RedirectManager.RedirectTo("/Account/FirstTimeSetup", new() { ["returnUrl"] = ReturnUrl ?? "/admin" });
+                    return;
+                }
+
+                var is2faEnabled = await SignInManager.UserManager.GetTwoFactorEnabledAsync(user);
+                
+                if (!is2faEnabled)
+                {
+                    RedirectManager.RedirectTo("/Account/FirstTime2FA", new() { ["returnUrl"] = ReturnUrl ?? "/admin" });
                     return;
                 }
             }
